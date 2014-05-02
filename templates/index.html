@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% block body %}
+<h1>Egoat is unbelivable!</h1>
+
+<p>Try it today!</p>
+{% for address, announcement in announcements.items() %}
+    <li><h3>{{ address }}</h3>
+    {% for checksum, file in announcement.items() %}
+        {{ checksum }} : {{ file }}
+    {% endfor %}
+  {% else %}
+    <li><em>Unbelievable.  No entries here so far</em>
+{% endfor %}
+
+{% endblock %}

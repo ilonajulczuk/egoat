@@ -1,16 +1,18 @@
-import socket
+import requests
 from hashlib import sha512
 import os
 import argparse
+import time
 import json
 
 
 
 class Client:
     CHECKSUM_STORAGE = '.checksums'
-    def __init__(self, directory, server_url):
+    def __init__(self, directory, server_url, address):
         self.directory = directory
         self.server_url = server_url
+        self.address = address
         self.check_sums = self.load_state()
         print(self.check_sums)
 
@@ -42,6 +44,11 @@ class Client:
                 json.dump(check_sums, f)
         return check_sums
 
+    def announce(self):
+        requests.post(self.server_url,
+                      params={'checksum_files': json.dumps(self.check_sums),
+                     'address': self.address})
+
 
 
 
@@ -50,11 +57,12 @@ def main(*args, **kwargs):
     parser.add_argument("-q", "--quiet", action="store_true")
 
     parser.add_argument("directory", type=str, help="Directory to serve.")
+    parser.add_argument("address", type=str, help="Addres to serve on.")
     parser.add_argument("-s", "--server_url", type=str, default="atte.ro",
                         help="Server to announce files.")
     args = parser.parse_args()
 
-    client = Client(args.directory, args.server_url)
+    client = Client(args.directory, args.server_url, args.address)
     if args.quiet:
         print(client.discover())
     else:
@@ -62,6 +70,10 @@ def main(*args, **kwargs):
                                                          args.server_url))
         print(args.directory)
         print(client.discover())
+    while True:
+        time.sleep(2)
+        print("announcing!")
+        client.announce()
 
 
 if __name__ == '__main__':
