@@ -36,11 +36,12 @@ class Client:
 
     def load_state(self):
         try:
-            with open(self.CHECKSUM_STORAGE, 'r') as f:
+            storage_filename = self.CHECKSUM_STORAGE + str(sha512(self.directory).hexdigest())
+            with open(storage_filename, 'r') as f:
                 check_sums = json.load(f)
         except IOError:
             check_sums = self.compute_check_sums(self.discover())
-            with open(self.CHECKSUM_STORAGE, 'w') as f:
+            with open(storage_filename, 'w') as f:
                 json.dump(check_sums, f)
         return check_sums
 
