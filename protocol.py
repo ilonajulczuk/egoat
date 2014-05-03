@@ -11,6 +11,7 @@ from socket_helpers import (
     sock_bind
 )
 
+CHUNKSIZE = 1024
 
 logger = logging
 
@@ -41,15 +42,17 @@ def send_file(sending_address, filename):
     while True:
         try:
             sock = create_socket()
-            chunksize = 1024
             file_size = os.path.getsize(filename)
             sent = 0
             with open(filename, 'r') as source_file:
-                chunk = source_file.read(chunksize)
+                chunk = source_file.read(CHUNKSIZE)
+                sock_send(chunk, sending_address, sock)
+                sent += len(chunk)
                 while sent < file_size:
-                    sent += len(chunk)
-                    time.sleep(0.001)
+                    time.sleep(0.01)
+                    chunk = source_file.read(CHUNKSIZE)
                     sock_send(chunk, sending_address, sock)
+                    sent += len(chunk)
 
             return True
         except:
@@ -95,18 +98,19 @@ def request_download(waiting_address, download_address, wanted_checksum):
 def download_file(peer_address, checksum, file_size):
     sock = sock_bind(peer_address)
     downloaded = 0
-    chunksize = 1024
     downloaded_file = ""
     with open(checksum, 'w') as target_file:
-        while (downloaded + 2 * chunksize) < file_size:
-            chunk, _ = sock.recvfrom(chunksize)
+        while (downloaded + CHUNKSIZE) < file_size:
+            chunk, _ = sock.recvfrom(CHUNKSIZE)
             downloaded_file += chunk
             downloaded += len(chunk)
-            time.sleep(0.01)
             target_file.write(chunk)
+            time.sleep(0.01)
+
         last_size = file_size - downloaded
         chunk, _ = sock.recvfrom(last_size)
         target_file.write(chunk)
+        downloaded_file += chunk
         sock.close()
     return downloaded_file
 

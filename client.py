@@ -19,8 +19,6 @@ logger = logging
 
 
 class Client(object):
-    CHECKSUM_STORAGE_BASE = '.checksums'
-
     def __init__(self, directory, server_url, address, waiting_port=6666):
         self.directory = directory
         self.waiting_port = waiting_port
@@ -43,15 +41,7 @@ class Client(object):
         return checksums
 
     def load_state(self):
-        try:
-            storage_filename = self.CHECKSUM_STORAGE_BASE + \
-                compute_checksum(self.directory)
-            with open(storage_filename, 'r') as storage_file:
-                check_sums = json.load(storage_file)
-        except IOError:
-            check_sums = self.compute_checksums(self.discover())
-            with open(storage_filename, 'w') as storage_file:
-                json.dump(check_sums, storage_file)
+        check_sums = self.compute_checksums(self.discover())
         return check_sums
 
     def announce(self):
@@ -102,7 +92,7 @@ class Client(object):
                     done_queue_download)).start()
         while True:
             if not done_queue_download.empty():
-                print('Downloaded\t%s %s %s' % done_queue_download.get())
+                print('Downloaded:\t%s %s %s' % done_queue_download.get())
 
             if not done_queue_upload.empty():
                 print('Uploaded:\t%s %s %s' % done_queue_upload.get())

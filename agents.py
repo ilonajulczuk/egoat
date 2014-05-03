@@ -14,7 +14,6 @@ from protocol import (
 logger = logging
 
 
-
 def dealer_upload(upload_address, checksum_files, upload):
     sock = sock_bind(upload_address)
     while True:
@@ -23,7 +22,6 @@ def dealer_upload(upload_address, checksum_files, upload):
             sending_address, checksum, filename = request
             upload.put((sending_address, checksum, filename))
     sock.close()
-
 
 
 def dealer_download(
@@ -73,12 +71,9 @@ def downloader(download, download_done):
                 downloaded_checksum = compute_checksum(downloaded_file)
                 download_correct = downloaded_checksum == checksum
                 if download_correct:
-                    print("correct download")
                     download_done.put((checksum, peer_address, True))
                     break
                 else:
-                    print("problem")
-                    print("Downloaded: %s" % len(downloaded_file))
                     logger.warning("Incorrect download")
             except:
                 import traceback
