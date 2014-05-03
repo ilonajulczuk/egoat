@@ -106,7 +106,7 @@ class Client(object):
 
             if not done_queue_upload.empty():
                 print('Uploaded:\t%s %s %s' % done_queue_upload.get())
-            time.sleep(2)
+            time.sleep(0.05)
             self.announce()
 
 

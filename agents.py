@@ -1,6 +1,6 @@
 import time
 import logging
-from socket_helpers import sock_bind
+from socket_helpers import sock_bind, convert_address
 from protocol import (
     accept_download_request,
     send_file,
@@ -30,13 +30,17 @@ def dealer_download(
         waiting_address,
         wanted_checksums,
         download):
+    waiting_ip, last_port = convert_address(waiting_address)
+
     for wanted_checksum in iter(wanted_checksums.get, 'STOP'):
         try:
             download_address = choose_peer(server_url, wanted_checksum, dealer_downloader_address)
+            last_port += 1
 
             if download_address is None:
                 continue
-            response =  request_download(waiting_address, download_address, wanted_checksum)
+            new_address = (waiting_ip, last_port)
+            response = request_download(new_address, download_address, wanted_checksum)
 
             if response is not None:
                 downloader_address, file_size = response
@@ -52,6 +56,7 @@ def dealer_download(
 def uploader(upload, upload_done):
     for peer_address, checksum, filename in iter(upload.get, 'STOP'):
         try:
+            time.sleep(0.2)
             result = send_file(peer_address, filename)
             upload_done.put((checksum, peer_address, result))
             logger.info("Sending done!")

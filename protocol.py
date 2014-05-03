@@ -11,7 +11,7 @@ from socket_helpers import (
     sock_bind
 )
 
-CHUNKSIZE = 1024
+CHUNKSIZE = 512
 
 logger = logging
 
@@ -102,7 +102,7 @@ def download_file(peer_address, checksum, file_size):
         sock.settimeout(4)
         downloaded_file = ""
         with open(checksum, 'w') as target_file:
-            while (downloaded + CHUNKSIZE) < file_size:
+            while (downloaded) < file_size:
                 chunk, _ = sock.recvfrom(CHUNKSIZE)
                 downloaded_file += chunk
                 downloaded += len(chunk)
@@ -110,6 +110,7 @@ def download_file(peer_address, checksum, file_size):
                 time.sleep(0.01)
 
             last_size = file_size - downloaded
+            print(last_size)
             if last_size > 0:
                 chunk, _ = sock.recvfrom(last_size)
                 target_file.write(chunk)
@@ -118,6 +119,8 @@ def download_file(peer_address, checksum, file_size):
         return downloaded_file
     except:
         import traceback
+        print(file_size)
+        print(len(downloaded_file))
         logger.warning(traceback.print_exc())
         return ""
 

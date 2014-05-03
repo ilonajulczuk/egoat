@@ -19,6 +19,7 @@ def sock_bind(address):
     sock.bind((udp_ip, udp_port))
     return sock
 
+
 def convert_address(address):
     if isinstance(address, (unicode, str)):
         udp_ip, udp_port = address.split(":")
