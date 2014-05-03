@@ -13,6 +13,7 @@ def test_sending_file():
 
     filenames = [
         'test_files/short_file.txt',
+        'test_files/short_file.txt',
         'test_files/file_for_upload.txt',
         'test_files/goat.jpg',
     ]
@@ -30,6 +31,3 @@ def test_sending_file():
         nt.eq_(len(file_content.split('\n')), len(downloaded_file.split('\n')))
         nt.eq_(new_checksum, checksum)
 
-
-def test_corrupted_file():
-    pass

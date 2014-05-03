@@ -96,23 +96,30 @@ def request_download(waiting_address, download_address, wanted_checksum):
 
 
 def download_file(peer_address, checksum, file_size):
-    sock = sock_bind(peer_address)
-    downloaded = 0
-    downloaded_file = ""
-    with open(checksum, 'w') as target_file:
-        while (downloaded + CHUNKSIZE) < file_size:
-            chunk, _ = sock.recvfrom(CHUNKSIZE)
-            downloaded_file += chunk
-            downloaded += len(chunk)
-            target_file.write(chunk)
-            time.sleep(0.01)
+    try:
+        sock = sock_bind(peer_address)
+        downloaded = 0
+        sock.settimeout(4)
+        downloaded_file = ""
+        with open(checksum, 'w') as target_file:
+            while (downloaded + CHUNKSIZE) < file_size:
+                chunk, _ = sock.recvfrom(CHUNKSIZE)
+                downloaded_file += chunk
+                downloaded += len(chunk)
+                target_file.write(chunk)
+                time.sleep(0.01)
 
-        last_size = file_size - downloaded
-        chunk, _ = sock.recvfrom(last_size)
-        target_file.write(chunk)
-        downloaded_file += chunk
-        sock.close()
-    return downloaded_file
+            last_size = file_size - downloaded
+            if last_size > 0:
+                chunk, _ = sock.recvfrom(last_size)
+                target_file.write(chunk)
+                downloaded_file += chunk
+            sock.close()
+        return downloaded_file
+    except:
+        import traceback
+        logger.warning(traceback.print_exc())
+        return ""
 
 def compute_checksum(data):
     return str(sha512(data).hexdigest())

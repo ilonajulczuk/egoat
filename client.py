@@ -54,6 +54,7 @@ class Client(object):
         NUMBER_OF_DOWNLOADING_PROCESSES = 4
 
         # Create queues
+        wanted_checksums_queue = Queue()
         task_queue_upload = Queue()
         task_queue_download = Queue()
         done_queue_upload = Queue()
@@ -73,7 +74,7 @@ class Client(object):
                 self.server_url,
                 self.address,
                 waiting_address,
-                wanted_checksums,
+                wanted_checksums_queue,
                 task_queue_download)).start()
 
         # Start worker processes
@@ -84,6 +85,9 @@ class Client(object):
                     task_queue_upload,
                     done_queue_upload)).start()
 
+        for checksum in wanted_checksums:
+            wanted_checksums_queue.put(checksum)
+
         for i in range(NUMBER_OF_DOWNLOADING_PROCESSES):
             Process(
                 target=downloader,
@@ -92,7 +96,13 @@ class Client(object):
                     done_queue_download)).start()
         while True:
             if not done_queue_download.empty():
-                print('Downloaded:\t%s %s %s' % done_queue_download.get())
+                download_result = done_queue_download.get()
+                checksum, _, success = download_result
+                if success:
+                    print('Downloaded:\t%s %s %s' % download_result)
+                else:
+                    print('Retrying download:\t%s' % checksum)
+                    wanted_checksums_queue.put(checksum)
 
             if not done_queue_upload.empty():
                 print('Uploaded:\t%s %s %s' % done_queue_upload.get())

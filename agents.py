@@ -30,8 +30,7 @@ def dealer_download(
         waiting_address,
         wanted_checksums,
         download):
-    while wanted_checksums:
-        wanted_checksum = wanted_checksums[0]
+    for wanted_checksum in iter(wanted_checksums.get, 'STOP'):
         try:
             download_address = choose_peer(server_url, wanted_checksum, dealer_downloader_address)
 
@@ -65,19 +64,14 @@ def uploader(upload, upload_done):
 
 def downloader(download, download_done):
     for peer_address, checksum, file_size in iter(download.get, 'STOP'):
-        while True:
-            try:
-                downloaded_file = download_file(peer_address, checksum, file_size)
-                downloaded_checksum = compute_checksum(downloaded_file)
-                download_correct = downloaded_checksum == checksum
-                if download_correct:
-                    download_done.put((checksum, peer_address, True))
-                    break
-                else:
-                    logger.warning("Incorrect download")
-            except:
-                import traceback
-                logger.exception(traceback.format_exc())
-                time.sleep(4)
-                logger.info("will restart soon...")
+        try:
+            downloaded_file = download_file(peer_address, checksum, file_size)
+            downloaded_checksum = compute_checksum(downloaded_file)
+            download_correct = downloaded_checksum == checksum
+            download_done.put((checksum, peer_address, download_correct))
+        except:
+            import traceback
+            logger.exception(traceback.format_exc())
+            time.sleep(4)
+            logger.info("will restart soon...")
 
