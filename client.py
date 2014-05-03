@@ -12,11 +12,12 @@ import socket
 
 log = logging
 
+
 def start_connection(peer_address, check_sum, filesize):
-    UDP_IP, UDP_PORT  = peer_address
+    UDP_IP, UDP_PORT = peer_address
     UDP_PORT = int(UDP_PORT)
-    sock = socket.socket(socket.AF_INET, # Internet
-                          socket.SOCK_DGRAM) # UDP
+    sock = socket.socket(socket.AF_INET,  # Internet
+                         socket.SOCK_DGRAM)  # UDP
     sock.sendto(json.dumps([check_sum, filesize]), (UDP_IP, UDP_PORT))
     return peer_address
 
@@ -24,10 +25,10 @@ def start_connection(peer_address, check_sum, filesize):
 def send_file(sending_address, filename):
     while True:
         try:
-            UDP_IP, UDP_PORT  = sending_address
+            UDP_IP, UDP_PORT = sending_address
             UDP_PORT = int(UDP_PORT)
-            sock = socket.socket(socket.AF_INET, # Internet
-                                  socket.SOCK_DGRAM) # UDP
+            sock = socket.socket(socket.AF_INET,  # Internet
+                                 socket.SOCK_DGRAM)  # UDP
             chunksize = 1024
             file_size = os.path.getsize(filename)
             sent = 0
@@ -43,7 +44,6 @@ def send_file(sending_address, filename):
             log.exception(traceback.format_exc())
 
 
-
 def sender(upload, upload_done):
     for deal_address, peer_address, checksum, filename in iter(upload.get, 'STOP'):
         try:
@@ -55,14 +55,15 @@ def sender(upload, upload_done):
             log.info("Sending failure!")
             log.exception(traceback.format_exc())
 
+
 def downloader(download, download_done):
     for peer_address, checksum, file_size in iter(download.get, 'STOP'):
         while True:
             try:
-                UDP_IP, UDP_PORT  = peer_address
+                UDP_IP, UDP_PORT = peer_address
                 UDP_PORT = int(UDP_PORT)
-                sock = socket.socket(socket.AF_INET, # Internet
-                                     socket.SOCK_DGRAM) # UDP
+                sock = socket.socket(socket.AF_INET,  # Internet
+                                     socket.SOCK_DGRAM)  # UDP
                 sock.bind((UDP_IP, UDP_PORT))
                 downloaded = 0
                 chunksize = 1024
@@ -73,7 +74,7 @@ def downloader(download, download_done):
                         downloaded_file += chunk
                         downloaded += len(chunk)
                         f.write(chunk)
-                        log.info(float(downloaded)/file_size)
+                        log.info(float(downloaded) / file_size)
                 sock.close()
                 log.info("Downloaded: %s..." % checksum[:6])
                 download_done.put((checksum, peer_address, True))
@@ -87,15 +88,15 @@ def downloader(download, download_done):
 
 
 def dealer_upload(upload_address, checksum_files, upload):
-    UDP_IP, UDP_PORT  = upload_address.split(":")
+    UDP_IP, UDP_PORT = upload_address.split(":")
     UDP_PORT = int(UDP_PORT)
     log.info("will wait at: %s" % upload_address)
-    sock = socket.socket(socket.AF_INET, # Internet
-                         socket.SOCK_DGRAM) # UDP
+    sock = socket.socket(socket.AF_INET,  # Internet
+                         socket.SOCK_DGRAM)  # UDP
     sock.bind((UDP_IP, UDP_PORT))
 
     while True:
-        message, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
+        message, addr = sock.recvfrom(1024)  # buffer size is 1024 bytes
         time.sleep(1)
         deal_address, sending_address, checksum = json.loads(message)
         filename = checksum_files[checksum]
@@ -104,7 +105,7 @@ def dealer_upload(upload_address, checksum_files, upload):
         deal_UDP_PORT = int(deal_UDP_PORT)
         sock.sendto(json.dumps(ack_message), (deal_UDP_IP, deal_UDP_PORT))
         time.sleep(1)
-        upload.put((deal_address, sending_address, checksum, filename ))
+        upload.put((deal_address, sending_address, checksum, filename))
 
 
 def get_uploader_addresses(server_url, checksum):
@@ -114,7 +115,12 @@ def get_uploader_addresses(server_url, checksum):
     return addresses
 
 
-def dealer_download(server_url, downloader_address, waiting_address, wanted_checksums, download):
+def dealer_download(
+        server_url,
+        downloader_address,
+        waiting_address,
+        wanted_checksums,
+        download):
     while wanted_checksums:
         wanted_checksum = wanted_checksums[0]
         time.sleep(1)
@@ -128,23 +134,29 @@ def dealer_download(server_url, downloader_address, waiting_address, wanted_chec
                 log.info("Checksum: %s..." % wanted_checksum[:6])
                 continue
             download_address = all_addresses[0]
-            UDP_IP, UDP_PORT  = download_address.split(":")
+            UDP_IP, UDP_PORT = download_address.split(":")
             UDP_PORT = int(UDP_PORT)
-            sock = socket.socket(socket.AF_INET, # Internet
-                                  socket.SOCK_DGRAM) # UDP
+            sock = socket.socket(socket.AF_INET,  # Internet
+                                 socket.SOCK_DGRAM)  # UDP
 
-            waiting_UDP_IP, waiting_UDP_PORT  = waiting_address
+            waiting_UDP_IP, waiting_UDP_PORT = waiting_address
             log.info("Here waiting: %s" % waiting_UDP_PORT)
 
-            downloader_address = ('127.0.0.1', 3300 + random.randint(0, 20) + int(str(int(wanted_checksum, 16))[:4]))
-            message = [((waiting_UDP_IP, waiting_UDP_PORT)), downloader_address, wanted_checksum]
+            downloader_address = ('127.0.0.1', 3300 +
+                                  random.randint(0, 20) +
+                                  int(str(int(wanted_checksum, 16))[:4]))
+            message = [
+                ((waiting_UDP_IP,
+                  waiting_UDP_PORT)),
+                downloader_address,
+                wanted_checksum]
             sock.sendto(json.dumps(message), (UDP_IP, UDP_PORT))
 
             waiting_UDP_PORT = int(waiting_UDP_PORT)
-            sock = socket.socket(socket.AF_INET, # Internet
-                                  socket.SOCK_DGRAM) # UDP
+            sock = socket.socket(socket.AF_INET,  # Internet
+                                 socket.SOCK_DGRAM)  # UDP
             sock.bind((waiting_UDP_IP, waiting_UDP_PORT))
-            json_data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
+            json_data, addr = sock.recvfrom(1024)  # buffer size is 1024 bytes
             sock.close()
             checksum, filesize = json.loads(json_data)
             if checksum != wanted_checksum:
@@ -164,6 +176,7 @@ def dealer_download(server_url, downloader_address, waiting_address, wanted_chec
 
 class Client:
     CHECKSUM_STORAGE = '.checksums'
+
     def __init__(self, directory, server_url, address, waiting_port=6666):
         self.directory = directory
         self.waiting_port = waiting_port
@@ -179,7 +192,6 @@ class Client:
                 for filename in (os.listdir(self.directory))
                 if os.path.isfile(whole_path(self.directory, filename))]
 
-
     def compute_check_sums(self, filenames):
         check_sums = {}
         for filename in filenames:
@@ -191,7 +203,8 @@ class Client:
 
     def load_state(self):
         try:
-            storage_filename = self.CHECKSUM_STORAGE + str(sha512(self.directory).hexdigest())
+            storage_filename = self.CHECKSUM_STORAGE + \
+                str(sha512(self.directory).hexdigest())
             with open(storage_filename, 'r') as f:
                 check_sums = json.load(f)
         except IOError:
@@ -203,7 +216,7 @@ class Client:
     def announce(self):
         requests.post(self.server_url + 'hello/',
                       params={'checksum_files': json.dumps(self.check_sums),
-                     'address': self.address})
+                              'address': self.address})
 
     def serve(self, wanted_checksums):
         NUMBER_OF_PROCESSES = 4
@@ -214,18 +227,37 @@ class Client:
         done_queue_upload = Queue()
         done_queue_download = Queue()
 
-
-        Process(target=dealer_upload, args=(self.address, self.check_sums, task_queue_upload)).start()
+        Process(
+            target=dealer_upload,
+            args=(
+                self.address,
+                self.check_sums,
+                task_queue_upload)).start()
 
         waiting_address = ('127.0.0.1', self.waiting_port)
-        Process(target=dealer_download, args=(self.server_url, self.address, waiting_address, wanted_checksums, task_queue_download)).start()
+        Process(
+            target=dealer_download,
+            args=(
+                self.server_url,
+                self.address,
+                waiting_address,
+                wanted_checksums,
+                task_queue_download)).start()
 
         # Start worker processes
         for i in range(NUMBER_OF_PROCESSES):
-            Process(target=sender, args=(task_queue_upload, done_queue_upload)).start()
+            Process(
+                target=sender,
+                args=(
+                    task_queue_upload,
+                    done_queue_upload)).start()
 
         for i in range(NUMBER_OF_PROCESSES):
-            Process(target=downloader, args=(task_queue_download, done_queue_download)).start()
+            Process(
+                target=downloader,
+                args=(
+                    task_queue_download,
+                    done_queue_download)).start()
         while True:
             if not done_queue_download.empty():
                 print('Downloaded\t%s %s %s' % done_queue_download.get())
@@ -251,8 +283,12 @@ def main(*args, **kwargs):
                         help="Server to announce files.")
     parser.add_argument("-c", "--checksum", type=str, default=None,
                         help="Checksum of file you want to download")
-    parser.add_argument("-f", "--checksum_file", type=str, default=None,
-                        help="List with stored checksums of files you want to download")
+    parser.add_argument(
+        "-f",
+        "--checksum_file",
+        type=str,
+        default=None,
+        help="List with stored checksums of files you want to download")
     parser.add_argument("-p", "--port", type=str, default=None,
                         help="Port to wait for comming requests")
     args = parser.parse_args()
