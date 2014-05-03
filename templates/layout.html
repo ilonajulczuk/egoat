@@ -24,6 +24,13 @@
 .media-object:hover {
         opacity:1;
 }
+
+.footer {
+        background-color: #428bca;
+        margin-top: 60px;
+        padding-top: 50px;
+        padding-bottom: 80px;
+}
 </style>
 </head>
 
@@ -67,8 +74,13 @@
             <!-- Keep all page content within the page-content inset div! -->
             <div class="page-content inset">
             {% block body %}{% endblock %}
+             <div class="pull-right footer col-md-12">
+                Created with python and love!
             </div>
-        </div>
+
+
+            </div>
+            </div>
 
     </div>
 
