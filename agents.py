@@ -67,10 +67,11 @@ def uploader(upload, upload_done):
 
 
 
-def downloader(download, download_done):
+def downloader(download, download_done, downloads_directory):
     for peer_address, checksum, file_size in iter(download.get, 'STOP'):
         try:
-            downloaded_file = download_file(peer_address, checksum, file_size)
+            downloaded_file = download_file(peer_address, checksum,
+                                            file_size, downloads_directory)
             downloaded_checksum = compute_checksum(downloaded_file)
             download_correct = downloaded_checksum == checksum
             download_done.put((checksum, peer_address, download_correct))

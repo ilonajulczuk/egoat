@@ -19,8 +19,10 @@ logger = logging
 
 
 class Client(object):
-    def __init__(self, directory, server_url, address, waiting_port=6666):
+    def __init__(self, directory, server_url, address, waiting_port,
+                 downloads_directory):
         self.directory = directory
+        self.downloads_directory = downloads_directory
         self.waiting_port = waiting_port
         self.server_url = server_url
         self.address = address
@@ -93,7 +95,8 @@ class Client(object):
                 target=downloader,
                 args=(
                     task_queue_download,
-                    done_queue_download)).start()
+                    done_queue_download,
+                    self.downloads_directory)).start()
         while True:
             if not done_queue_download.empty():
                 download_result = done_queue_download.get()
@@ -128,13 +131,16 @@ def main():
         help="List with stored checksums of files you want to download")
     parser.add_argument("-p", "--port", type=str, default=None,
                         help="Port to wait for comming requests")
+    parser.add_argument("-d", "--downloads_directory", type=str, default='Downloads',
+                        help="Directory to store downloads")
     args = parser.parse_args()
 
     if args.port:
         port = args.port
     else:
         port = 6666
-    client = Client(args.directory, args.server_url, args.address, port)
+    client = Client(args.directory, args.server_url, args.address,
+                    port, args.downloads_directory)
 
     wanted_checksums = []
     if args.checksum:

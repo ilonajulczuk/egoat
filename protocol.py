@@ -95,13 +95,15 @@ def request_download(waiting_address, download_address, wanted_checksum):
         return downloader_address, file_size
 
 
-def download_file(peer_address, checksum, file_size):
+def download_file(peer_address, checksum, file_size, downloads_directory):
     try:
         sock = sock_bind(peer_address)
         downloaded = 0
         sock.settimeout(4)
         downloaded_file = ""
-        with open(checksum, 'w') as target_file:
+        if not os.path.exists(downloads_directory):
+            os.makedirs(downloads_directory)
+        with open(os.path.join(downloads_directory, checksum), 'w') as target_file:
             while (downloaded) < file_size:
                 chunk, _ = sock.recvfrom(CHUNKSIZE)
                 downloaded_file += chunk
