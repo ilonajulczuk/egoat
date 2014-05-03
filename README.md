@@ -6,9 +6,12 @@ Amazingly fast p2p client and server.
 #TODO:
 
 - test with bad peers (not really having a file or whatever)
-- add tests
-- refactor code
-- add random choosing of peers
+    - blacklisting?
 - add gui interface
-- test files after download if they have the same checksum
-- better management of  socket addresses?
+    - what now?> with commands
+    - something more elaborate as for example
+        - ncurses
+        - python clik
+    - must have colors
+- better management of  socket addresses
+    - it would be nice if it was configurable, etc
