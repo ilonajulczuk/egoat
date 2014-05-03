@@ -8,7 +8,7 @@ app = Flask(__name__)
 app.config.from_object(__name__)
 
 REDIS_LIST = 'egoat::sharers::'
-TIMEOUT = 100
+TIMEOUT = 3
 
 
 def load_data():
@@ -22,6 +22,13 @@ def load_data():
     return announcements
 
 
+def get_peers(check_sum):
+    all_peers = load_data()
+    peers_with_file = [address for address, values in all_peers.items()
+                       if check_sum in values.keys()]
+    return peers_with_file
+
+
 def add_announcement(address, checksum_files):
     announcement = checksum_files
     json_announcement = json.dumps(announcement)
@@ -32,18 +39,16 @@ def add_announcement(address, checksum_files):
 @app.route('/')
 def hello_world():
     data = load_data()
-    print(data)
     return render_template('index.html', announcements=data)
 
 
-@app.route('/file/', methods=['GET'])
 @app.route('/file/<file_hash>', methods=['GET'])
 def get_file(file_hash=None):
-    print(file_hash)
     if file_hash:
-        return json.dumps(["127.0.0.1"])
+        peers = get_peers(file_hash)
+        return json.dumps(peers)
     else:
-        return json.dumps(["121", "124", "132"])
+        return 400
 
 
 @app.route('/hello/', methods=['POST'])
@@ -52,7 +57,6 @@ def announce_files():
     address = request.args['address']
     add_announcement(address, checksum_files)
 
-    print("Got new data!")
     return "OK"
 
 
