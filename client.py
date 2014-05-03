@@ -29,12 +29,9 @@ class Client(object):
         self.check_sums = self.load_state()
 
     def discover(self):
-        def whole_path(base, filename):
-            return base + "/" + filename
-
-        return [whole_path(self.directory, filename)
+        return [os.path.join(self.directory, filename)
                 for filename in (os.listdir(self.directory))
-                if os.path.isfile(whole_path(self.directory, filename))]
+                if os.path.isfile(os.path.join(self.directory, filename))]
 
     def compute_checksums(self, filenames):
         checksums = {}
