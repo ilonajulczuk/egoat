@@ -25,7 +25,8 @@ def test_sending_file():
 
         file_size = os.path.getsize(filename)
         Process(target=send_file, args=(sending_address, filename)).start()
-        downloaded_file = download_file(sending_address, checksum, file_size)
+        downloaded_file = download_file(sending_address, checksum,
+                                        file_size, 'test_results')
 
         new_checksum = compute_checksum(downloaded_file)
         nt.eq_(len(file_content.split('\n')), len(downloaded_file.split('\n')))

@@ -95,7 +95,7 @@ def request_download(waiting_address, download_address, wanted_checksum):
         return downloader_address, file_size
 
 
-def download_file(peer_address, checksum, file_size, downloads_directory):
+def download_file(peer_address, checksum, file_size, downloads_directory="Downloads"):
     try:
         sock = sock_bind(peer_address)
         downloaded = 0
@@ -111,19 +111,11 @@ def download_file(peer_address, checksum, file_size, downloads_directory):
                 target_file.write(chunk)
                 time.sleep(0.01)
 
-            last_size = file_size - downloaded
-            print(last_size)
-            if last_size > 0:
-                chunk, _ = sock.recvfrom(last_size)
-                target_file.write(chunk)
-                downloaded_file += chunk
             sock.close()
         return downloaded_file
     except:
         import traceback
-        print(file_size)
-        print(len(downloaded_file))
-        logger.warning(traceback.print_exc())
+        logger.warning(traceback.format_exc())
         return ""
 
 def compute_checksum(data):
