@@ -38,7 +38,7 @@ def dealer_download(
             last_port += 1
 
             if download_address is None:
-                continue
+                wanted_checksums.put(wanted_checksum)
             new_address = (waiting_ip, last_port)
             response = request_download(new_address, download_address, wanted_checksum)
 
