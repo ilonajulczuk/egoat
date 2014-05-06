@@ -29,20 +29,26 @@ def dealer_download(
     downloader = Downloader(server_url, waiting_address=waiting_address)
     for wanted_checksum in iter(wanted_checksums.get, 'STOP'):
         try:
-            download_address = downloader.choose_peer(wanted_checksum, dealer_downloader_address)
+            download_address = downloader.choose_peer(
+                wanted_checksum,
+                dealer_downloader_address)
             last_port += 1
 
             if download_address is None:
                 wanted_checksums.put(wanted_checksum)
-            response = downloader.request_download(download_address, wanted_checksum)
+            response = downloader.request_download(
+                download_address,
+                wanted_checksum)
             if response is not None:
                 peer_uploader_address, file_size = response
-                download.put((peer_uploader_address, wanted_checksum, file_size))
+                download.put(
+                    (peer_uploader_address,
+                     wanted_checksum,
+                     file_size))
         except:
             import traceback
             logger.exception(traceback.format_exc())
             time.sleep(1)
-
 
 
 def uploader(upload, upload_done):
@@ -58,13 +64,12 @@ def uploader(upload, upload_done):
             logger.exception(traceback.format_exc())
 
 
-
 def downloader(download, download_done, downloads_directory):
     downloader = Downloader(downloads_directory=downloads_directory)
     for peer_address, checksum, file_size in iter(download.get, 'STOP'):
         try:
             downloaded_file = downloader.download_file(peer_address, checksum,
-                                            file_size)
+                                                       file_size)
             downloaded_checksum = compute_checksum(downloaded_file)
             download_correct = downloaded_checksum == checksum
             download_done.put((checksum, peer_address, download_correct))
@@ -73,4 +78,3 @@ def downloader(download, download_done, downloads_directory):
             logger.exception(traceback.format_exc())
             time.sleep(4)
             logger.info("will restart soon...")
-

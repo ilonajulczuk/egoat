@@ -22,6 +22,7 @@ logger = logging
 
 
 class Uploader(object):
+
     def __init__(self):
         pass
 
@@ -47,7 +48,6 @@ class Uploader(object):
             import traceback
             logger.exception(traceback.format_exc())
 
-
     def accept_download_request(self, sock, checksum_files):
         message, addr = sock.recvfrom(1024)
         deal_address, checksum = json.loads(message)
@@ -59,7 +59,12 @@ class Uploader(object):
 
 
 class Downloader(object):
-    def __init__(self, server_url=None, waiting_address=None, downloads_directory='Downloads'):
+
+    def __init__(
+            self,
+            server_url=None,
+            waiting_address=None,
+            downloads_directory='Downloads'):
         self.server_url = server_url
         self.waiting_address = waiting_address
         self.downloads_directory = downloads_directory
@@ -69,7 +74,6 @@ class Downloader(object):
         response = requests.get(url)
         addresses = json.loads(response.text)
         return addresses
-
 
     def choose_peer(self, wanted_checksum, downloader_address):
         """Choose address of client which has wanted checksum"""
@@ -85,7 +89,6 @@ class Downloader(object):
             logger.info("Checksum: %s..." % wanted_checksum[:6])
             download_address = None
         return download_address
-
 
     def request_download(self, download_address, wanted_checksum):
         waiting_udp_ip, waiting_udp_port = self.waiting_address
@@ -106,7 +109,6 @@ class Downloader(object):
             return None
         else:
             return peer_uploader_address, file_size
-
 
     def download_file(self, peer_address, checksum, file_size):
         try:

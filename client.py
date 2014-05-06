@@ -17,8 +17,8 @@ from agents import (
 logger = logging
 
 
-
 class Client(object):
+
     def __init__(self, directory, server_url, address, waiting_port,
                  downloads_directory):
         self.directory = directory
@@ -131,8 +131,12 @@ def main():
         help="List with stored checksums of files you want to download")
     parser.add_argument("-p", "--port", type=str, default=None,
                         help="Port to wait for comming requests")
-    parser.add_argument("-d", "--downloads_directory", type=str, default='Downloads',
-                        help="Directory to store downloads")
+    parser.add_argument(
+        "-d",
+        "--downloads_directory",
+        type=str,
+        default='Downloads',
+        help="Directory to store downloads")
     args = parser.parse_args()
 
     if args.port:

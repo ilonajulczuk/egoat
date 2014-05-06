@@ -8,7 +8,7 @@ app = Flask(__name__)
 app.config.from_object(__name__)
 
 REDIS_LIST = 'egoat::sharers::'
-TIMEOUT = 3
+TIMEOUT = 30
 
 
 def load_data():
