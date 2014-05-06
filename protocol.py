@@ -15,6 +15,7 @@ CHUNKSIZE = 512
 
 logger = logging
 
+
 def get_uploader_addresses(server_url, checksum):
     url = server_url + 'file/' + checksum
     response = requests.get(url)
@@ -22,18 +23,18 @@ def get_uploader_addresses(server_url, checksum):
     return addresses
 
 
-
 def choose_peer(server_url, wanted_checksum, downloader_address):
+    """Choose address of client which has wanted checksum"""
     all_addresses = get_uploader_addresses(server_url, wanted_checksum)
     if downloader_address in all_addresses:
         all_addresses.remove(downloader_address)
-    if not all_addresses:
-        time.sleep(2)
-        logger.info("No one has it!")
-        logger.info("Checksum: %s..." % wanted_checksum[:6])
+
     if all_addresses:
         download_address = random.choice(all_addresses)
     else:
+        time.sleep(2)
+        logger.info("No one has it!")
+        logger.info("Checksum: %s..." % wanted_checksum[:6])
         download_address = None
     return download_address
 

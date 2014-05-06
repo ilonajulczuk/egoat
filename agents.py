@@ -45,7 +45,6 @@ def dealer_download(
             if response is not None:
                 downloader_address, file_size = response
                 download.put((downloader_address, wanted_checksum, file_size))
-                wanted_checksums.remove(wanted_checksum)
         except:
             import traceback
             logger.exception(traceback.format_exc())
