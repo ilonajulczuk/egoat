@@ -15,3 +15,6 @@ Amazingly fast p2p client and server.
     - must have colors
 - better management of  socket addresses
     - it would be nice if it was configurable, etc
+
+- replace udp sending to tcp or something else?
+- divide files into smaller parts
