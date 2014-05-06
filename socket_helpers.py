@@ -1,22 +1,34 @@
 import socket
 
 
-def sock_send(payload, address, sock=None):
+SOCK_CONFIG = {
+    'tcp': (socket.AF_INET, socket.SOCK_STREAM),
+    'udp': (socket.AF_INET, socket.SOCK_DGRAM),
+}
+
+
+def sock_send(payload, address, sock=None, socktype="udp"):
     if sock is None:
-        sock = socket.socket(socket.AF_INET,  # Internet
-                             socket.SOCK_DGRAM)  # UDP
+        sock = create_socket(socktype)
     udp_ip, udp_port = convert_address(address)
     sock.sendto(payload, (udp_ip, udp_port))
 
 
-def create_socket():
-    return socket.socket(socket.AF_INET,  # Internet
-                         socket.SOCK_DGRAM)  # UDP
+def create_socket(socktype='udp'):
+    return socket.socket(*SOCK_CONFIG[socktype])
+
+
+def sock_connect(address):
+    server_ip, server_port = convert_address(address)
+    sock = create_socket("tcp")
+    sock.connect((server_ip, server_port))
+    return sock
+
 
 def sock_bind(address):
-    udp_ip, udp_port = convert_address(address)
+    waiting_ip, waiting_port = convert_address(address)
     sock = create_socket()
-    sock.bind((udp_ip, udp_port))
+    sock.bind((waiting_ip, waiting_port))
     return sock
 
 
