@@ -1,3 +1,5 @@
+[![Build Status](https://drone.io/github.com/atteroTheGreatest/egoat/status.png)](https://drone.io/github.com/atteroTheGreatest/egoat/latest)
+
 #EGOAT - your new p2p client
 
 Amazingly fast p2p client and server.
@@ -16,5 +18,4 @@ Amazingly fast p2p client and server.
 - better management of  socket addresses
     - it would be nice if it was configurable, etc
 
-- replace udp sending to tcp or something else?
 - divide files into smaller parts
