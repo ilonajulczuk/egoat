@@ -1,10 +1,29 @@
 package main
 
-import "fmt"
-import "github.com/atteroTheGreatest/protocol"
+import (
+        "github.com/atteroTheGreatest/protocol"
+        "io/ioutil"
+)
+
+func Discover(directory string) (checksums_filenames map[string]string) {
+    files, _ := ioutil.ReadDir(directory)
+    checksums_filenames = make(map[string]string)
+    for _, f := range files {
+            buf, err := ioutil.ReadFile(directory + "/" + f.Name())
+            protocol.Check(err)
+            checksum := protocol.ComputeChecksum(buf)
+            checksums_filenames[checksum] = f.Name()
+    }
+    return
+}
+
+func Announce(checksums_filenames map[string]string, serverUrl string) {
+
+}
+
+func ChoosePeer(serverUrl string, checksum string) {
+
+}
 
 func main() {
-    fmt.Println("Hello, new gopher!")
-    protocol.StreamFile("127.0.0.1:4444", "test.txt")
-    fmt.Println(protocol.ComputeChecksum([]byte("test")))
 }

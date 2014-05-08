@@ -14,6 +14,7 @@ var CHUNKSIZE int = 512
 
 func ComputeChecksum(data []byte) string {
 	hasher := sha512.New()
+    hasher.Write(data)
 	sha := hex.EncodeToString(hasher.Sum(nil))
 	return sha
 }
@@ -41,7 +42,7 @@ func ChoosePeer(server_url string, wantedChecksum string, downloaderAddress stri
 	return "127.0.0.1:6666"
 }
 
-func check(err error) {
+func Check(err error) {
 	if err != nil {
 		panic(err)
 	}
@@ -57,22 +58,22 @@ func AcceptDownloadRequest(checksums_filenames map[string]string, waitingAddress
 	}
 	sock, err := net.ListenUDP("udp", addr)
 
-	check(err)
+	Check(err)
 	for {
 		sock.ReadFromUDP(buf)
 		first0 := First0(buf)
 		res := &RequesterMessage{}
 		err = json.Unmarshal([]byte(string(buf[:first0])), &res)
-		check(err)
+		Check(err)
 		filename, ok := checksums_filenames[res.Checksum]
 		if ok {
 			fileSize, err := FileSize(filename)
-			check(err)
+			Check(err)
 			acceptMessage := &AcceptMessage{res.Checksum, bindingAddress, fileSize}
 
 			replyConn, err := net.Dial("udp", res.WaitingAddress)
 			messageInJSON, _ := json.Marshal(acceptMessage)
-			check(err)
+			Check(err)
 			replyConn.Write(messageInJSON)
 
 			forUpload <- string(res.Checksum)
@@ -105,7 +106,7 @@ func FileSize(fileName string) (fileSize int, err error) {
 func RequestFile(checksum string, uploaderAddress string, waitingAddress string) (response *AcceptMessage) {
 
 	conn, err := net.Dial("udp", uploaderAddress)
-	check(err)
+	Check(err)
 	message := &RequesterMessage{
 		Checksum:       checksum,
 		WaitingAddress: waitingAddress}
@@ -124,7 +125,6 @@ func RequestFile(checksum string, uploaderAddress string, waitingAddress string)
 	first0 := First0(buf)
 	acceptMessage := &AcceptMessage{}
 	err = json.Unmarshal([]byte(string(buf[:first0])), &acceptMessage)
-	fmt.Println(acceptMessage)
 	return acceptMessage
 }
 
