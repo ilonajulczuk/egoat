@@ -85,7 +85,7 @@ class Downloader(object):
     def get_uploader_addresses(self, checksum):
         url = self.server_url + 'file/' + checksum
         response = requests.get(url)
-        addresses = json.loads(response.text)
+        addresses = json.loads(response.text)['addresses']
         return addresses
 
     def choose_peer(self, wanted_checksum, downloader_address):

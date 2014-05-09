@@ -46,7 +46,7 @@ def hello_world():
 def get_file(file_hash=None):
     if file_hash:
         peers = get_peers(file_hash)
-        return json.dumps(peers)
+        return json.dumps({"addresses": peers})
     else:
         return 400
 
