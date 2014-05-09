@@ -75,10 +75,10 @@ func AcceptDownloadRequest(checksums_filenames map[string]string, waitingAddress
 			messageInJSON, _ := json.Marshal(acceptMessage)
 			Check(err)
 			replyConn.Write(messageInJSON)
-            message := []string{bindingAddress, res.Checksum}
+			message := []string{bindingAddress, res.Checksum}
 			forUpload <- message
 		} else {
-            panic(ok)
+			panic(ok)
 		}
 	}
 }
@@ -226,4 +226,3 @@ func StreamFile(bindingAddress string, fileName string, fileSize int, done chan 
 	}
 	done <- true
 }
-

@@ -27,7 +27,6 @@ func Discover(directory string) (checksums_filenames map[string]string) {
 }
 
 func Announce(checksums_filenames map[string]string, announceUrl string, address string) {
-
 	marshalled, err := json.Marshal(checksums_filenames)
 	protocol.Check(err)
 	checksum_files_json := string(marshalled)
@@ -41,7 +40,15 @@ func Announce(checksums_filenames map[string]string, announceUrl string, address
 }
 
 func ChoosePeer(serverUrl string, checksum string) string {
-	return "127.0.0.1:5022"
+        resp, err := http.Get(serverUrl + "file/" + checksum)
+	protocol.Check(err)
+        data, err := ioutil.ReadAll(resp.Body)
+        protocol.Check(err)
+        var peersMessage map[string]interface{}
+        err = json.Unmarshal(data, &peersMessage)
+        protocol.Check(err)
+
+	return peersMessage["addresses"].( []interface {})[0].(string)
 }
 
 type AnnounceMessage struct {
