@@ -52,7 +52,6 @@ class Uploader(object):
         message, addr = sock.recvfrom(1024)
 
         loaded_json = json.loads(message)
-        print(loaded_json)
         try:
             deal_address, checksum = loaded_json
             filename = checksum_files[checksum]
@@ -106,10 +105,10 @@ class Downloader(object):
     def request_download(self, download_address, wanted_checksum):
         waiting_udp_ip, waiting_udp_port = self.waiting_address
         waiting_udp_port = int(waiting_udp_port)
-        message = [
-            ((waiting_udp_ip,
-              waiting_udp_port)),
-            wanted_checksum]
+        message = {
+            "waiting_address": ":".join((waiting_udp_ip,
+              str(waiting_udp_port))),
+            "checksum": wanted_checksum}
 
         checksum_request = json.dumps(message)
         sock = sock_bind(self.waiting_address)
@@ -144,7 +143,7 @@ class Downloader(object):
                     target_file.write(chunk)
 
             sock.close()
-            return downloaded_file
+            return downloaded_file[:file_size]
         except:
             import traceback
             logger.warning(traceback.format_exc())

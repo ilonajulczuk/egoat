@@ -33,7 +33,7 @@ func (s *TestProtocol) TestStreamingFile(c *C) {
 }
 
 func (s *TestProtocol) TestRequestingFile(c *C) {
-	forUpload := make(chan string)
+	forUpload := make(chan []string)
 	waitingAddress := "127.0.0.1:4444"
 	requesterAddress := "127.0.0.1:5444"
 	bindingAddress := "127.0.0.1:5678"

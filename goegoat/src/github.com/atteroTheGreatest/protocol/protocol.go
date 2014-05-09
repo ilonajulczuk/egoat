@@ -48,7 +48,7 @@ func Check(err error) {
 	}
 }
 
-func AcceptDownloadRequest(checksums_filenames map[string]string, waitingAddress string, forUpload chan string, bindingAddress string) {
+func AcceptDownloadRequest(checksums_filenames map[string]string, waitingAddress string, forUpload chan []string, bindingAddress string) {
 	buf := make([]byte, CHUNKSIZE)
 
 	addr, err := net.ResolveUDPAddr("udp", waitingAddress)
@@ -75,9 +75,10 @@ func AcceptDownloadRequest(checksums_filenames map[string]string, waitingAddress
 			messageInJSON, _ := json.Marshal(acceptMessage)
 			Check(err)
 			replyConn.Write(messageInJSON)
-
-			forUpload <- string(res.Checksum)
+            message := []string{bindingAddress, res.Checksum}
+			forUpload <- message
 		} else {
+            panic(ok)
 		}
 	}
 }
@@ -226,5 +227,3 @@ func StreamFile(bindingAddress string, fileName string, fileSize int, done chan 
 	done <- true
 }
 
-func RequestDownload(waiting_address string, download_address string, wanted_checksum string) {
-}
