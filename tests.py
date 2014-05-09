@@ -68,7 +68,11 @@ def test_requesting_download():
     checksum = "test"
     downloader = Downloader(server_url="http://example.com", waiting_address=waiting_address)
     def mock_accept(download_address, waiting_address, checksum):
-        ack_message = (download_address, checksum, 42)
+        ack_message = {
+            "streaming_address": download_address,
+            "checksum": checksum,
+            "file_size": 42
+        }
         sock_send(json.dumps(ack_message), waiting_address)
 
     Process(target=mock_accept, args=(download_address, waiting_address, checksum)).start()

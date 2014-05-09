@@ -7,10 +7,12 @@ import (
 	"github.com/atteroTheGreatest/protocol"
 	"io/ioutil"
 	"net/http"
-        "time"
 	"net/url"
-        "strconv"
+	"strconv"
+	"time"
 )
+
+type Tuple []interface{}
 
 func Discover(directory string) (checksums_filenames map[string]string) {
 	files, _ := ioutil.ReadDir(directory)
@@ -39,8 +41,8 @@ func Announce(checksums_filenames map[string]string, announceUrl string, address
 	defer resp.Body.Close()
 }
 
-func ChoosePeer(serverUrl string, checksum string) (string) {
-    return "127.0.0.1:5022"
+func ChoosePeer(serverUrl string, checksum string) string {
+	return "127.0.0.1:5022"
 }
 
 type AnnounceMessage struct {
@@ -62,12 +64,12 @@ func main() {
 	fmt.Println("numb:", *uploaderPort)
 	fmt.Println("numb:", *downloaderPort)
 	fmt.Println("numb:", *wantedChecksum)
-        fmt.Println("downloaderAddress:", downloaderAddress)
-        fmt.Println("will discover directories!")
+	fmt.Println("downloaderAddress:", downloaderAddress)
+	fmt.Println("will discover directories!")
 	checksums_filenames := Discover(*directory)
 
-        fmt.Println("Discovered!")
-        done := make(chan bool)
+	fmt.Println("Discovered!")
+	done := make(chan bool)
 	ticker := time.NewTicker(time.Millisecond * 5000)
 	go func() {
 		for _ = range ticker.C {
@@ -76,38 +78,54 @@ func main() {
 	}()
 
 	forUpload := make(chan string)
-        toRequest := make(chan string, 5)
-        toDownload := make(chan *protocol.AcceptMessage)
+	toRequest := make(chan string, 5)
+	toDownload := make(chan *protocol.AcceptMessage)
 
-        fmt.Println("putting checksum into channel")
-        toRequest<-*wantedChecksum
+	fmt.Println("putting checksum into channel")
+	toRequest <- *wantedChecksum
 
 	bindingAddress := "127.0.0.1:5678"
 
-
 	go protocol.AcceptDownloadRequest(checksums_filenames, uploaderAddress, forUpload, bindingAddress)
 
-
-        go func () {
-            for checksum := range(toRequest){
-                fmt.Println("requesting", checksum)
-                newPeer := ChoosePeer(*serverUrl, checksum)
-                fmt.Println("info", checksum, newPeer, downloaderAddress)
-                response := protocol.RequestFile(checksum, newPeer, downloaderAddress)
-                fmt.Println("requesting successful!", response)
-                //toDownload<-response
-            }
-        }()
-        downloadsDirectory := "Downloads/"
-	downloads := make(chan []byte)
 	go func() {
-            for response := range(toDownload) {
-		downloadedFile := protocol.DownloadFile(response.StreamingAddress, response.Checksum, response.FileSize, downloadsDirectory)
-		downloads <- downloadedFile
-            }
+		for checksum := range toRequest {
+			fmt.Println("requesting", checksum)
+			newPeer := ChoosePeer(*serverUrl, checksum)
+			fmt.Println("info", checksum, newPeer, downloaderAddress)
+			response := protocol.RequestFile(checksum, newPeer, downloaderAddress)
+			fmt.Println("requesting successful!", response)
+			toDownload <- response
+		}
+	}()
+	downloadsDirectory := "Downloads"
+	downloads := make(chan Tuple, 5)
+	go func() {
+		for response := range toDownload {
+			time.Sleep(100 * time.Millisecond)
+			downloadedFile := protocol.DownloadFile(response.StreamingAddress, response.Checksum, response.FileSize, downloadsDirectory)
+			fmt.Println("download ready!")
+			newChecksum := protocol.ComputeChecksum(downloadedFile)
+			if newChecksum == response.Checksum {
+				downloads <- Tuple{response.Checksum, true}
+			} else {
+				downloads <- Tuple{response.Checksum, false}
+			}
+		}
+	}()
+	go func() {
+		for downloadResult := range downloads {
+			checksum := downloadResult[0].(string)
+			success := downloadResult[1].(bool)
+			fmt.Println("Download result", checksum, success)
+			if !success {
+				fmt.Println("Retrying download", checksum)
+				forUpload <- checksum
+			}
+		}
 	}()
 
 	<-forUpload
-        <-done
+	<-done
 
 }

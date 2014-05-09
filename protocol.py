@@ -57,14 +57,16 @@ class Uploader(object):
             deal_address, checksum = loaded_json
             filename = checksum_files[checksum]
         except:
-            deal_address = loaded_json['WaitingAddress']
-            checksum = loaded_json['Checksum']
-            print(deal_address)
-            print(checksum)
+            deal_address = loaded_json['waiting_address']
+            checksum = loaded_json['checksum']
             filename = checksum_files[checksum]
 
         binding_address = ('127.0.0.1', 7381 + random.randint(0, 30))
-        ack_message = (binding_address, checksum, os.path.getsize(filename))
+        ack_message = {
+            "streaming_address": ":".join([str(el) for el in binding_address]),
+            "checksum": checksum,
+            "file_size": os.path.getsize(filename)
+        }
         sock_send(json.dumps(ack_message), deal_address)
         return binding_address, checksum, filename
 
@@ -115,7 +117,10 @@ class Downloader(object):
 
         json_data, addr = sock.recvfrom(1024)  # buffer size is 1024 bytes
         sock.close()
-        peer_uploader_address, checksum, file_size = json.loads(json_data)
+        payload =  json.loads(json_data)
+        peer_uploader_address = payload['streaming_address']
+        checksum = payload['checksum']
+        file_size = payload['file_size']
         if checksum != wanted_checksum or file_size == 0:
             return None
         else:

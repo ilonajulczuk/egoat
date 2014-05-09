@@ -14,6 +14,8 @@ def dealer_upload(upload_address, checksum_files, upload):
         request = uploader.accept_download_request(sock, checksum_files)
         if request:
             sending_address, checksum, filename = request
+            print("request ok")
+            print(sending_address)
             upload.put((sending_address, checksum, filename))
     sock.close()
 

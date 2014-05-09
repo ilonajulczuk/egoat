@@ -14,7 +14,7 @@ var CHUNKSIZE int = 512
 
 func ComputeChecksum(data []byte) string {
 	hasher := sha512.New()
-    hasher.Write(data)
+	hasher.Write(data)
 	sha := hex.EncodeToString(hasher.Sum(nil))
 	return sha
 }
@@ -83,14 +83,14 @@ func AcceptDownloadRequest(checksums_filenames map[string]string, waitingAddress
 }
 
 type RequesterMessage struct {
-	Checksum       string
-	WaitingAddress string
+	Checksum       string `json:"checksum"`
+	WaitingAddress string `json:"waiting_address"`
 }
 
 type AcceptMessage struct {
-	Checksum         string
-	StreamingAddress string
-	FileSize         int
+	Checksum         string `json:"checksum"`
+	StreamingAddress string `json:"streaming_address"`
+	FileSize         int    `json:"file_size"`
 }
 
 func FileSize(fileName string) (fileSize int, err error) {
@@ -125,6 +125,7 @@ func RequestFile(checksum string, uploaderAddress string, waitingAddress string)
 	first0 := First0(buf)
 	acceptMessage := &AcceptMessage{}
 	err = json.Unmarshal([]byte(string(buf[:first0])), &acceptMessage)
+	Check(err)
 	return acceptMessage
 }
 
@@ -149,16 +150,15 @@ func DownloadFile(peerAddress string, checksum string, fileSize int, downloadsDi
 		}
 	}()
 
-	n := 0
+	downloaded := 0
 
-	for n < fileSize-CHUNKSIZE {
+	n := 0
+	for downloaded < fileSize-CHUNKSIZE {
 		n, err = conn.Read(buf)
 		if err != nil && err != io.EOF {
 			panic(err)
 		}
-		if n == 0 {
-			break
-		}
+		downloaded += n
 
 		_, err = fo.Write(buf)
 		if err != nil {
@@ -167,13 +167,14 @@ func DownloadFile(peerAddress string, checksum string, fileSize int, downloadsDi
 		fileBytes = append(fileBytes, buf...)
 	}
 
-	left := fileSize - n
+	left := fileSize - downloaded
 	if left > 0 {
 		buf := make([]byte, left)
 		n, err = conn.Read(buf)
 		if err != nil && err != io.EOF {
 			panic(err)
 		}
+		downloaded += n
 		fileBytes = append(fileBytes, buf...)
 		_, err = fo.Write(buf)
 	}
