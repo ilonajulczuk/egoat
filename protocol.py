@@ -50,8 +50,19 @@ class Uploader(object):
 
     def accept_download_request(self, sock, checksum_files):
         message, addr = sock.recvfrom(1024)
-        deal_address, checksum = json.loads(message)
-        filename = checksum_files[checksum]
+
+        loaded_json = json.loads(message)
+        print(loaded_json)
+        try:
+            deal_address, checksum = loaded_json
+            filename = checksum_files[checksum]
+        except:
+            deal_address = loaded_json['WaitingAddress']
+            checksum = loaded_json['Checksum']
+            print(deal_address)
+            print(checksum)
+            filename = checksum_files[checksum]
+
         binding_address = ('127.0.0.1', 7381 + random.randint(0, 30))
         ack_message = (binding_address, checksum, os.path.getsize(filename))
         sock_send(json.dumps(ack_message), deal_address)
@@ -119,7 +130,8 @@ class Downloader(object):
             downloaded_file = ""
             if not os.path.exists(self.downloads_directory):
                 os.makedirs(self.downloads_directory)
-            with open(os.path.join(self.downloads_directory, checksum), 'w') as target_file:
+            output_filename = os.path.join(self.downloads_directory, checksum)
+            with open(output_filename, 'w') as target_file:
                 while (downloaded) < file_size:
                     chunk = sock.recv(CHUNKSIZE)
                     downloaded_file += chunk

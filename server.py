@@ -53,8 +53,17 @@ def get_file(file_hash=None):
 
 @app.route('/hello/', methods=['POST'])
 def announce_files():
-    checksum_files = json.loads(request.args['checksum_files'])
-    address = request.args['address']
+    print(request.args)
+    print(request.form)
+    try:
+        checksum_json = request.args['checksum_files']
+
+        address = request.args['address']
+    except:
+
+        checksum_json = request.form['checksum_files']
+        address = request.form['address']
+    checksum_files = json.loads(checksum_json)
     add_announcement(address, checksum_files)
 
     return "OK"
