@@ -1,6 +1,7 @@
 import requests
 from multiprocessing import Process, Queue
 import os
+from threading import Timer
 import argparse
 from protocol import compute_checksum
 import time
@@ -110,7 +111,7 @@ class Client(object):
             if not done_queue_upload.empty():
                 print('Uploaded:\t%s %s %s' % done_queue_upload.get())
             time.sleep(0.05)
-            self.announce()
+            Timer(5, self.announce).start()
 
 
 def main():
