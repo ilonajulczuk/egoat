@@ -58,16 +58,16 @@ def announce_files():
     try:
         checksum_json = request.args['checksum_files']
 
-        address = request.args['address']
+        address = request.args['port']
     except:
 
         checksum_json = request.form['checksum_files']
-        address = request.form['address']
+        address = request.form['port']
+    address = request.remote_addr + ":" + address
     checksum_files = json.loads(checksum_json)
     add_announcement(address, checksum_files)
 
-    return "OK"
-
+    return request.remote_addr, 200
 
 if __name__ == '__main__':
     app.run()

@@ -20,13 +20,15 @@ logger = logging
 
 class Client(object):
 
-    def __init__(self, directory, server_url, address, waiting_port,
+    def __init__(self, directory, server_url, downloader_port, waiting_port,
                  downloads_directory):
         self.directory = directory
         self.downloads_directory = downloads_directory
         self.waiting_port = waiting_port
         self.server_url = server_url
-        self.address = address
+        self.base_address = "0.0.0.0"
+        self.out_address = "127.0.0.1"
+        self.address = self.base_address + ":" + downloader_port
         self.check_sums = self.load_state()
 
     def discover(self):
@@ -48,9 +50,12 @@ class Client(object):
         return check_sums
 
     def announce(self):
-        requests.post(self.server_url + 'hello/',
+        response = requests.post(self.server_url + 'hello/',
                       params={'checksum_files': json.dumps(self.check_sums),
-                              'address': self.address})
+                              'port': self.waiting_port})
+        print("oh, response!")
+        print(response.text)
+        #self.out_address = response.text
 
     def serve(self, wanted_checksums):
         NUMBER_OF_UPLOADING_PROCESSES = 4
@@ -70,7 +75,7 @@ class Client(object):
                 self.check_sums,
                 task_queue_upload)).start()
 
-        waiting_address = ('127.0.0.1', self.waiting_port)
+        waiting_address = (self.base_address, self.waiting_port)
         Process(
             target=dealer_download,
             args=(
@@ -98,6 +103,8 @@ class Client(object):
                     task_queue_download,
                     done_queue_download,
                     self.downloads_directory)).start()
+
+        Timer(2, self.announce).start()
         while True:
             if not done_queue_download.empty():
                 download_result = done_queue_download.get()
@@ -111,7 +118,6 @@ class Client(object):
             if not done_queue_upload.empty():
                 print('Uploaded:\t%s %s %s' % done_queue_upload.get())
             time.sleep(0.05)
-            Timer(5, self.announce).start()
 
 
 def main():

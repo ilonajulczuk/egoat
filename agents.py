@@ -35,12 +35,15 @@ def dealer_download(
                 wanted_checksum,
                 dealer_downloader_address)
             last_port += 1
-
+            print("requested download")
+            print(download_address)
             if download_address is None:
                 wanted_checksums.put(wanted_checksum)
+
             response = downloader.request_download(
                 download_address,
                 wanted_checksum)
+            print("here is a response:", response)
             if response is not None:
                 peer_uploader_address, file_size = response
                 download.put(
