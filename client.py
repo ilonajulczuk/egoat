@@ -26,6 +26,7 @@ class Client(object):
         self.downloads_directory = downloads_directory
         self.waiting_port = waiting_port
         self.server_url = server_url
+        self.downloader_port = downloader_port
         self.base_address = "0.0.0.0"
         self.out_address = "127.0.0.1"
         self.address = self.base_address + ":" + downloader_port
@@ -52,9 +53,10 @@ class Client(object):
     def announce(self):
         response = requests.post(self.server_url + 'hello/',
                       params={'checksum_files': json.dumps(self.check_sums),
-                              'port': self.waiting_port})
-        print("oh, response!")
-        print(response.text)
+                              'port': self.downloader_port})
+        self.base_address = response.text
+        Timer(20, self.announce).start()
+
         #self.out_address = response.text
 
     def serve(self, wanted_checksums):
@@ -146,10 +148,7 @@ def main():
         help="Directory to store downloads")
     args = parser.parse_args()
 
-    if args.port:
-        port = args.port
-    else:
-        port = 6666
+    port = args.port
     client = Client(args.directory, args.server_url, args.address,
                     port, args.downloads_directory)
 

@@ -14,8 +14,6 @@ def dealer_upload(upload_address, checksum_files, upload):
         request = uploader.accept_download_request(sock, checksum_files)
         if request:
             sending_address, checksum, filename = request
-            print("request ok")
-            print(sending_address)
             upload.put((sending_address, checksum, filename))
     sock.close()
 
@@ -35,15 +33,12 @@ def dealer_download(
                 wanted_checksum,
                 dealer_downloader_address)
             last_port += 1
-            print("requested download")
-            print(download_address)
             if download_address is None:
                 wanted_checksums.put(wanted_checksum)
 
             response = downloader.request_download(
                 download_address,
                 wanted_checksum)
-            print("here is a response:", response)
             if response is not None:
                 peer_uploader_address, file_size = response
                 download.put(

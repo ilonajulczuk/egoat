@@ -23,7 +23,7 @@ logger = logging
 
 class Uploader(object):
 
-    def __init__(self):
+    def __init__(self, outside_ip='127.0.0.1', inside_ip='0.0.0.0'):
         pass
 
     def stream_file(self, binding_address, filename):
@@ -60,6 +60,7 @@ class Uploader(object):
             checksum = loaded_json['checksum']
             filename = checksum_files[checksum]
 
+        # outside address
         binding_address = ('127.0.0.1', 7381 + random.randint(0, 30))
         ack_message = {
             "streaming_address": ":".join([str(el) for el in binding_address]),
@@ -76,7 +77,9 @@ class Downloader(object):
             self,
             server_url=None,
             waiting_address=None,
-            downloads_directory='Downloads'):
+            outside_ip='127.0.0.1',
+            inside_ip='0.0.0.0',
+            downloads_directory='Downloads',):
         self.server_url = server_url
         self.waiting_address = waiting_address
         self.downloads_directory = downloads_directory
@@ -103,6 +106,8 @@ class Downloader(object):
         return download_address
 
     def request_download(self, download_address, wanted_checksum):
+
+        # outside address
         waiting_udp_ip, waiting_udp_port = self.waiting_address
         waiting_udp_port = int(waiting_udp_port)
         message = {
