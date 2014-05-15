@@ -21,7 +21,6 @@ def test_streaming_file():
     ]
 
     for filename in filenames:
-        print(filename)
         downloader = Downloader("test", "test")
         uploader = Uploader()
         with open(filename) as f:
@@ -57,16 +56,18 @@ def test_downloading_file():
         downloader = Downloader("test", download_address)
         uploader = Uploader()
         file_size = os.path.getsize(filename)
+
         Process(target=downloader.download_file, args=(sending_address, checksum,
                                         file_size)).start()
         uploader.stream_file(sending_address, filename)
 
 
 def test_requesting_download():
-    waiting_address = ("127.0.0.1", 9627)
-    download_address = ("127.0.0.1", 9527)
+    downloader_port = 9627
+    base_address = "127.0.0.1"
+    download_address = (base_address, 9527)
     checksum = "test"
-    downloader = Downloader(server_url="http://example.com", waiting_address=waiting_address)
+    downloader = Downloader(server_url="http://example.com", downloader_port=downloader_port)
     def mock_accept(download_address, waiting_address, checksum):
         ack_message = {
             "streaming_address": download_address,
@@ -75,7 +76,7 @@ def test_requesting_download():
         }
         sock_send(json.dumps(ack_message), waiting_address)
 
-    Process(target=mock_accept, args=(download_address, waiting_address, checksum)).start()
+    Process(target=mock_accept, args=(download_address, (base_address, downloader_port), checksum)).start()
     downloader.request_download(download_address, checksum)
 
 

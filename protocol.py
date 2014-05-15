@@ -83,14 +83,14 @@ class Downloader(object):
     def __init__(
             self,
             server_url=None,
-            waiting_port=None,
+            downloader_port=None,
             outside_ip='127.0.0.1',
             inside_ip='0.0.0.0',
             downloads_directory='Downloads',):
         self.server_url = server_url
         self.outside_ip = outside_ip
         self.inside_ip = inside_ip
-        self.waiting_port = waiting_port
+        self.downloader_port = downloader_port
         self.downloads_directory = downloads_directory
 
     def get_uploader_addresses(self, checksum):
@@ -119,14 +119,14 @@ class Downloader(object):
             # outside address
             message = {
                 "waiting_address": ":".join((self.outside_ip,
-                  str(self.waiting_port))),
+                  str(self.downloader_port))),
                 "checksum": wanted_checksum}
 
-            waiting_address = ":".join((self.inside_ip,
-                  str(self.waiting_port)))
+            downloader_address = ":".join((self.inside_ip,
+                  str(self.downloader_port)))
 
             checksum_request = json.dumps(message)
-            sock = sock_bind(waiting_address)
+            sock = sock_bind(downloader_address)
             sock_send(checksum_request, download_address)
 
             json_data, addr = sock.recvfrom(1024)  # buffer size is 1024 bytes
