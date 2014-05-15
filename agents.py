@@ -1,38 +1,31 @@
 import time
 import logging
-from socket_helpers import sock_bind, convert_address
 from protocol import Downloader, Uploader, compute_checksum
 
 
 logger = logging
 
 
-def dealer_upload(upload_address, checksum_files, upload):
-    sock = sock_bind(upload_address)
-    uploader = Uploader()
+def dealer_upload(uploader, upload_address, checksum_files, upload):
     while True:
-        request = uploader.accept_download_request(sock, checksum_files)
+        request = uploader.accept_download_request(checksum_files)
         if request:
             sending_address, checksum, filename = request
             upload.put((sending_address, checksum, filename))
-    sock.close()
 
 
 def dealer_download(
-        server_url,
-        dealer_downloader_address,
+        downloader,
+        dealer_uploader_address,
         waiting_address,
         wanted_checksums,
         download):
-    waiting_ip, last_port = convert_address(waiting_address)
 
-    downloader = Downloader(server_url, waiting_address=waiting_address)
     for wanted_checksum in iter(wanted_checksums.get, 'STOP'):
         try:
             download_address = downloader.choose_peer(
                 wanted_checksum,
-                dealer_downloader_address)
-            last_port += 1
+                dealer_uploader_address)
             if download_address is None:
                 wanted_checksums.put(wanted_checksum)
 
@@ -40,9 +33,9 @@ def dealer_download(
                 download_address,
                 wanted_checksum)
             if response is not None:
-                peer_uploader_address, file_size = response
+                selected_streaming_binding_address, file_size = response
                 download.put(
-                    (peer_uploader_address,
+                    (selected_streaming_binding_address,
                      wanted_checksum,
                      file_size))
         except:
@@ -53,10 +46,10 @@ def dealer_download(
 
 def uploader(upload, upload_done):
     uploader = Uploader()
-    for peer_address, checksum, filename in iter(upload.get, 'STOP'):
+    for binding_address, checksum, filename in iter(upload.get, 'STOP'):
         try:
-            result = uploader.stream_file(peer_address, filename)
-            upload_done.put((checksum, peer_address, result))
+            result = uploader.stream_file(binding_address, filename)
+            upload_done.put((checksum, binding_address, result))
             logger.info("Sending done!")
         except:
             import traceback
