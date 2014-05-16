@@ -12,6 +12,18 @@ import (
 
 var CHUNKSIZE int = 512
 
+// Structs useful for communication
+type RequesterMessage struct {
+	Checksum       string `json:"checksum"`
+	WaitingAddress string `json:"waiting_address"`
+}
+
+type AcceptMessage struct {
+	Checksum         string `json:"checksum"`
+	StreamingAddress string `json:"streaming_address"`
+	FileSize         int    `json:"file_size"`
+}
+
 func ComputeChecksum(data []byte) string {
 	hasher := sha512.New()
 	hasher.Write(data)
@@ -19,15 +31,7 @@ func ComputeChecksum(data []byte) string {
 	return sha
 }
 
-func Contains(list []string, elem string) bool {
-	for _, t := range list {
-		if t == elem {
-			return true
-		}
-	}
-	return false
-}
-
+// Helper functions
 func First0(buf []byte) (first0 int) {
 	for i, b := range buf {
 		if b == 0 {
@@ -38,12 +42,23 @@ func First0(buf []byte) (first0 int) {
 	return
 }
 
+func FileSize(fileName string) (fileSize int, err error) {
+	f, err := os.Open(fileName)
+	if err != nil {
+		panic(err)
+	}
+	fistat, err := f.Stat()
+	fileSize = int(fistat.Size())
+	return
+}
+
 func Check(err error) {
 	if err != nil {
 		panic(err)
 	}
 }
 
+// Function used to P2P file sharing
 func AcceptDownloadRequest(checksums_filenames map[string]string, waitingAddress string, forUpload chan []string, bindingAddress string) {
 	buf := make([]byte, CHUNKSIZE)
 
@@ -77,27 +92,6 @@ func AcceptDownloadRequest(checksums_filenames map[string]string, waitingAddress
 			panic(ok)
 		}
 	}
-}
-
-type RequesterMessage struct {
-	Checksum       string `json:"checksum"`
-	WaitingAddress string `json:"waiting_address"`
-}
-
-type AcceptMessage struct {
-	Checksum         string `json:"checksum"`
-	StreamingAddress string `json:"streaming_address"`
-	FileSize         int    `json:"file_size"`
-}
-
-func FileSize(fileName string) (fileSize int, err error) {
-	f, err := os.Open(fileName)
-	if err != nil {
-		panic(err)
-	}
-	fistat, err := f.Stat()
-	fileSize = int(fistat.Size())
-	return
 }
 
 func RequestFile(checksum string, uploaderAddress string, waitingAddress string) (response *AcceptMessage) {
@@ -177,7 +171,7 @@ func DownloadFile(peerAddress string, checksum string, fileSize int, downloadsDi
 	return
 }
 
-func StreamFile(bindingAddress string, fileName string, fileSize int, done chan bool) {
+func StreamFile(bindingAddress string, fileName string, fileSize int) {
 	psock, err := net.Listen("tcp", bindingAddress)
 
 	if err != nil {
@@ -219,5 +213,4 @@ func StreamFile(bindingAddress string, fileName string, fileSize int, done chan 
 			fmt.Println("Error send reply:", err.Error())
 		}
 	}
-	done <- true
 }

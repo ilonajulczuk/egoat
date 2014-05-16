@@ -13,7 +13,6 @@ type TestProtocol struct{}
 var _ = Suite(&TestProtocol{})
 
 func (s *TestProtocol) TestStreamingFile(c *C) {
-	done := make(chan bool)
 	downloads := make(chan []byte)
 	peerAddress := "127.0.0.1:3333"
 	downloadsDirectory := "Downloads"
@@ -22,12 +21,11 @@ func (s *TestProtocol) TestStreamingFile(c *C) {
 	if err != nil {
 		// Could not obtain stat, handle error
 	}
-	go StreamFile(peerAddress, fileName, fileSize, done)
+	go StreamFile(peerAddress, fileName, fileSize)
 	go func() {
 		downloadedFile := DownloadFile(peerAddress, "test", fileSize, downloadsDirectory)
 		downloads <- downloadedFile
 	}()
-	<-done
 	downloadedFile := <-downloads
 	c.Assert(string(downloadedFile), Equals, "testing is good for you!\n")
 }

@@ -57,7 +57,11 @@ type AnnounceMessage struct {
 }
 
 func main() {
+
+	// Hardcoded values
 	baseUrl := "127.0.0.1:"
+	downloadsDirectory := "Downloads"
+	bindingAddress := "127.0.0.1:5678"
 
 	// Command line arguments
 	serverUrl := flag.String("server_url", "http://127.0.0.1:5000/", "Url of tracker server")
@@ -86,12 +90,11 @@ func main() {
 	forUpload := make(chan []string)
 	toRequest := make(chan string, 5)
 	toDownload := make(chan *protocol.AcceptMessage)
-	uploads := make(chan bool)
+	downloads := make(chan Tuple, 5)
 	uploadedFiles := make(chan string)
 
+	// Feed our checksum wishlist
 	toRequest <- *wantedChecksum
-
-	bindingAddress := "127.0.0.1:5678"
 
 	go protocol.AcceptDownloadRequest(checksums_filenames, uploaderAddress, forUpload, bindingAddress)
 
@@ -103,8 +106,6 @@ func main() {
 		}
 	}()
 
-	downloadsDirectory := "Downloads"
-	downloads := make(chan Tuple, 5)
 	go func() {
 		for response := range toDownload {
 			time.Sleep(100 * time.Millisecond)
@@ -125,7 +126,7 @@ func main() {
 			fileName := checksums_filenames[checksum]
 			fileSize, err := protocol.FileSize(fileName)
 			protocol.Check(err)
-			protocol.StreamFile(bindingAddress, fileName, fileSize, uploads)
+			protocol.StreamFile(bindingAddress, fileName, fileSize)
 			uploadedFiles <- checksum
 		}
 	}()
