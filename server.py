@@ -10,6 +10,12 @@ app.config.from_object(__name__)
 REDIS_LIST = 'egoat::sharers::'
 TIMEOUT = 30
 
+def get_ip(request):
+    if not request.headers.getlist("X-Forwarded-For"):
+        ip = request.remote_addr
+    else:
+        ip = request.headers.getlist("X-Forwarded-For")[0]
+    return ip
 
 def load_data():
     rclient = redis.Redis()
@@ -67,7 +73,7 @@ def announce_files():
     checksum_files = json.loads(checksum_json)
     add_announcement(address, checksum_files)
 
-    return request.remote_addr, 200
+    return get_ip(request), 200
 
 if __name__ == '__main__':
     app.run()
