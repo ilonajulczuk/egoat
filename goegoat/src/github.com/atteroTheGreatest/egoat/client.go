@@ -51,7 +51,12 @@ func ChoosePeer(serverUrl string, checksum string) string {
 	err = json.Unmarshal(data, &peersMessage)
 	protocol.Check(err)
 
-	return peersMessage["addresses"].([]interface{})[0].(string)
+	addresses := peersMessage["addresses"].([]interface{})
+	if len(addresses) > 0 {
+		return peersMessage["addresses"].([]interface{})[0].(string)
+	} else {
+		return ""
+	}
 }
 
 type AnnounceMessage struct {
@@ -107,7 +112,10 @@ func main() {
 
 	go func() {
 		for checksum := range toRequest {
-			newPeer := ChoosePeer(*serverUrl, checksum)
+			newPeer := ""
+			for newPeer == "" {
+				newPeer = ChoosePeer(*serverUrl, checksum)
+			}
 			response := protocol.RequestFile(checksum, newPeer, downloaderPortString, outsideUrl)
 			toDownload <- response
 		}
