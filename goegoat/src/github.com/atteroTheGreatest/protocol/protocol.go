@@ -38,10 +38,6 @@ func First0(buf []byte) (first0 int) {
 	return
 }
 
-func ChoosePeer(server_url string, wantedChecksum string, downloaderAddress string) string {
-	return "127.0.0.1:6666"
-}
-
 func Check(err error) {
 	if err != nil {
 		panic(err)
@@ -105,7 +101,6 @@ func FileSize(fileName string) (fileSize int, err error) {
 }
 
 func RequestFile(checksum string, uploaderAddress string, waitingAddress string) (response *AcceptMessage) {
-
 	conn, err := net.Dial("udp", uploaderAddress)
 	Check(err)
 	message := &RequesterMessage{
