@@ -7,6 +7,7 @@ from protocol import compute_checksum
 import time
 import json
 import logging
+from protocol import Downloader, Uploader
 from agents import (
     dealer_upload,
     dealer_download,
@@ -20,13 +21,20 @@ logger = logging
 
 class Client(object):
 
-    def __init__(self, directory, server_url, address, waiting_port,
+    def __init__(self, directory, server_url, uploader_port, downloader_port,
                  downloads_directory):
         self.directory = directory
         self.downloads_directory = downloads_directory
-        self.waiting_port = waiting_port
         self.server_url = server_url
-        self.address = address
+
+        self.inside_ip = "0.0.0.0"
+        self.outside_ip = "127.0.0.1"
+
+
+        self.downloader_port = downloader_port
+        self.uploader_port = uploader_port
+
+        self.address = self.inside_ip + ":" + self.uploader_port
         self.check_sums = self.load_state()
 
     def discover(self):
@@ -48,9 +56,13 @@ class Client(object):
         return check_sums
 
     def announce(self):
-        requests.post(self.server_url + 'hello/',
+        response = requests.post(self.server_url + 'hello/',
                       params={'checksum_files': json.dumps(self.check_sums),
-                              'address': self.address})
+                              'port': self.uploader_port})
+        self.outside_ip = response.text
+        Timer(20, self.announce).start()
+
+        #self.out_address = response.text
 
     def serve(self, wanted_checksums):
         NUMBER_OF_UPLOADING_PROCESSES = 4
@@ -63,20 +75,26 @@ class Client(object):
         done_queue_upload = Queue()
         done_queue_download = Queue()
 
+        upload_helper = Uploader(port=self.uploader_port)
+
         Process(
             target=dealer_upload,
             args=(
+                upload_helper,
                 self.address,
                 self.check_sums,
                 task_queue_upload)).start()
 
-        waiting_address = ('127.0.0.1', self.waiting_port)
+
+        downloader_address = (self.inside_ip, self.downloader_port)
+        download_helper = Downloader(self.server_url, self.downloader_port)
+
         Process(
             target=dealer_download,
             args=(
-                self.server_url,
+                download_helper,
                 self.address,
-                waiting_address,
+                downloader_address,
                 wanted_checksums_queue,
                 task_queue_download)).start()
 
@@ -98,6 +116,8 @@ class Client(object):
                     task_queue_download,
                     done_queue_download,
                     self.downloads_directory)).start()
+
+        Timer(2, self.announce).start()
         while True:
             if not done_queue_download.empty():
                 download_result = done_queue_download.get()
@@ -111,7 +131,6 @@ class Client(object):
             if not done_queue_upload.empty():
                 print('Uploaded:\t%s %s %s' % done_queue_upload.get())
             time.sleep(0.05)
-            Timer(5, self.announce).start()
 
 
 def main():
@@ -140,10 +159,7 @@ def main():
         help="Directory to store downloads")
     args = parser.parse_args()
 
-    if args.port:
-        port = args.port
-    else:
-        port = 6666
+    port = args.port
     client = Client(args.directory, args.server_url, args.address,
                     port, args.downloads_directory)
 

@@ -26,29 +26,32 @@ func Discover(directory string) (checksums_filenames map[string]string) {
 	return
 }
 
-func Announce(checksums_filenames map[string]string, announceUrl string, address string) {
+func Announce(checksums_filenames map[string]string, announceUrl string, port string) string {
 	marshalled, err := json.Marshal(checksums_filenames)
 	protocol.Check(err)
 	checksum_files_json := string(marshalled)
 	protocol.Check(err)
-	values := url.Values{"address": {address}, "checksum_files": {checksum_files_json}}
+	values := url.Values{"port": {port}, "checksum_files": {checksum_files_json}}
 	protocol.Check(err)
 	resp, err := http.PostForm(announceUrl, values)
-	protocol.Check(err)
-
 	defer resp.Body.Close()
+
+	protocol.Check(err)
+	data, err := ioutil.ReadAll(resp.Body)
+	protocol.Check(err)
+	return string(data)
 }
 
 func ChoosePeer(serverUrl string, checksum string) string {
-        resp, err := http.Get(serverUrl + "file/" + checksum)
+	resp, err := http.Get(serverUrl + "file/" + checksum)
 	protocol.Check(err)
-        data, err := ioutil.ReadAll(resp.Body)
-        protocol.Check(err)
-        var peersMessage map[string]interface{}
-        err = json.Unmarshal(data, &peersMessage)
-        protocol.Check(err)
+	data, err := ioutil.ReadAll(resp.Body)
+	protocol.Check(err)
+	var peersMessage map[string]interface{}
+	err = json.Unmarshal(data, &peersMessage)
+	protocol.Check(err)
 
-	return peersMessage["addresses"].( []interface {})[0].(string)
+	return peersMessage["addresses"].([]interface{})[0].(string)
 }
 
 type AnnounceMessage struct {
@@ -57,46 +60,59 @@ type AnnounceMessage struct {
 }
 
 func main() {
+
+	// Hardcoded values
+	downloadsDirectory := "Downloads"
+	bindingPort := "5678"
+	// Command line arguments
 	serverUrl := flag.String("server_url", "http://127.0.0.1:5000/", "Url of tracker server")
-	baseUrl := "127.0.0.1:"
+
 	uploaderPort := flag.Int("uploader_port", 5673, "Port for uploader")
 	downloaderPort := flag.Int("downloader_port", 5674, "Port for downloader")
 	wantedChecksum := flag.String("checksum", "", "Checksum to download")
 	directory := flag.String("directory", "test_files/", "Directory to share")
+
 	flag.Parse()
-	downloaderAddress := baseUrl + strconv.Itoa(*downloaderPort)
-	uploaderAddress := baseUrl + strconv.Itoa(*uploaderPort)
+
+	// Prepare parameters using command line arguments
+	downloaderPortString := strconv.Itoa(*downloaderPort)
+	uploaderPortString := strconv.Itoa(*uploaderPort)
+	uploaderAddress := protocol.INSIDE_URL + ":" + uploaderPortString
 	checksums_filenames := Discover(*directory)
 
+	outsideUrl := Announce(checksums_filenames, *serverUrl+"hello/", uploaderPortString)
 	done := make(chan bool)
 	ticker := time.NewTicker(time.Millisecond * 5000)
 	go func() {
 		for _ = range ticker.C {
-			Announce(checksums_filenames, *serverUrl+"hello/", uploaderAddress)
+			Announce(checksums_filenames, *serverUrl+"hello/", uploaderPortString)
 		}
 	}()
 
 	forUpload := make(chan []string)
 	toRequest := make(chan string, 5)
 	toDownload := make(chan *protocol.AcceptMessage)
-        uploads := make(chan bool)
-        uploadedFiles := make(chan string)
+	downloads := make(chan Tuple, 5)
+	uploadedFiles := make(chan string)
 
+	// Feed our checksum wishlist
 	toRequest <- *wantedChecksum
 
-	bindingAddress := "127.0.0.1:5678"
-
-	go protocol.AcceptDownloadRequest(checksums_filenames, uploaderAddress, forUpload, bindingAddress)
+	go func() {
+		for true {
+			message := protocol.AcceptDownloadRequest(checksums_filenames, uploaderAddress, bindingPort, outsideUrl)
+			forUpload <- message
+		}
+	}()
 
 	go func() {
 		for checksum := range toRequest {
 			newPeer := ChoosePeer(*serverUrl, checksum)
-			response := protocol.RequestFile(checksum, newPeer, downloaderAddress)
+			response := protocol.RequestFile(checksum, newPeer, downloaderPortString, outsideUrl)
 			toDownload <- response
 		}
 	}()
-	downloadsDirectory := "Downloads"
-	downloads := make(chan Tuple, 5)
+
 	go func() {
 		for response := range toDownload {
 			time.Sleep(100 * time.Millisecond)
@@ -110,17 +126,15 @@ func main() {
 		}
 	}()
 
-        go func() {
+	go func() {
 		for uploadArray := range forUpload {
-                    bindingAddress := uploadArray[0]
-                    checksum := uploadArray[1]
-                    fileName := checksums_filenames[checksum]
-                    fileSize, err := protocol.FileSize(fileName)
-                    protocol.Check(err)
-                    fmt.Println(bindingAddress)
-                    protocol.StreamFile(bindingAddress, fileName, fileSize, uploads)
-                    fmt.Println("streaming ready!")
-                    uploadedFiles<-checksum
+			bindingAddress := uploadArray[0]
+			checksum := uploadArray[1]
+			fileName := checksums_filenames[checksum]
+			fileSize, err := protocol.FileSize(fileName)
+			protocol.Check(err)
+			protocol.StreamFile(bindingAddress, fileName, fileSize)
+			uploadedFiles <- checksum
 		}
 	}()
 
@@ -135,6 +149,7 @@ func main() {
 			}
 		}
 	}()
+
 	go func() {
 		for checksum := range uploadedFiles {
 			fmt.Println("Upload result", checksum)

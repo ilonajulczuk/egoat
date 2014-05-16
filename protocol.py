@@ -23,8 +23,10 @@ logger = logging
 
 class Uploader(object):
 
-    def __init__(self):
-        pass
+    def __init__(self, outside_ip='127.0.0.1', inside_ip='0.0.0.0', port=6666):
+        self.port = port
+        self.outside_ip = outside_ip
+        self.inside_ip = inside_ip
 
     def stream_file(self, binding_address, filename):
         sock = create_socket(socktype="tcp")
@@ -48,9 +50,12 @@ class Uploader(object):
             import traceback
             logger.exception(traceback.format_exc())
 
-    def accept_download_request(self, sock, checksum_files):
+    def accept_download_request(self, checksum_files):
+        address = (self.inside_ip, self.port)
+        sock = sock_bind(address)
         message, addr = sock.recvfrom(1024)
 
+        sock.close()
         loaded_json = json.loads(message)
         try:
             deal_address, checksum = loaded_json
@@ -60,14 +65,17 @@ class Uploader(object):
             checksum = loaded_json['checksum']
             filename = checksum_files[checksum]
 
-        binding_address = ('127.0.0.1', 7381 + random.randint(0, 30))
+        binding_port = 7381 + random.randint(0, 30)
+        # notice difference between outside and inside addresses
+        outside_binding_address = (self.outside_ip, binding_port)
+        inside_binding_address = (self.inside_ip, binding_port)
         ack_message = {
-            "streaming_address": ":".join([str(el) for el in binding_address]),
+            "streaming_address": ":".join([str(el) for el in outside_binding_address]),
             "checksum": checksum,
             "file_size": os.path.getsize(filename)
         }
         sock_send(json.dumps(ack_message), deal_address)
-        return binding_address, checksum, filename
+        return inside_binding_address, checksum, filename
 
 
 class Downloader(object):
@@ -75,10 +83,14 @@ class Downloader(object):
     def __init__(
             self,
             server_url=None,
-            waiting_address=None,
-            downloads_directory='Downloads'):
+            downloader_port=None,
+            outside_ip='127.0.0.1',
+            inside_ip='0.0.0.0',
+            downloads_directory='Downloads',):
         self.server_url = server_url
-        self.waiting_address = waiting_address
+        self.outside_ip = outside_ip
+        self.inside_ip = inside_ip
+        self.downloader_port = downloader_port
         self.downloads_directory = downloads_directory
 
     def get_uploader_addresses(self, checksum):
@@ -103,27 +115,33 @@ class Downloader(object):
         return download_address
 
     def request_download(self, download_address, wanted_checksum):
-        waiting_udp_ip, waiting_udp_port = self.waiting_address
-        waiting_udp_port = int(waiting_udp_port)
-        message = {
-            "waiting_address": ":".join((waiting_udp_ip,
-              str(waiting_udp_port))),
-            "checksum": wanted_checksum}
+        try:
+            # outside address
+            message = {
+                "waiting_address": ":".join((self.outside_ip,
+                  str(self.downloader_port))),
+                "checksum": wanted_checksum}
 
-        checksum_request = json.dumps(message)
-        sock = sock_bind(self.waiting_address)
-        sock_send(checksum_request, download_address)
+            downloader_address = ":".join((self.inside_ip,
+                  str(self.downloader_port)))
 
-        json_data, addr = sock.recvfrom(1024)  # buffer size is 1024 bytes
-        sock.close()
-        payload =  json.loads(json_data)
-        peer_uploader_address = payload['streaming_address']
-        checksum = payload['checksum']
-        file_size = payload['file_size']
-        if checksum != wanted_checksum or file_size == 0:
-            return None
-        else:
-            return peer_uploader_address, file_size
+            checksum_request = json.dumps(message)
+            sock = sock_bind(downloader_address)
+            sock_send(checksum_request, download_address)
+
+            json_data, addr = sock.recvfrom(1024)  # buffer size is 1024 bytes
+            sock.close()
+            payload =  json.loads(json_data)
+            peer_uploader_address = payload['streaming_address']
+            checksum = payload['checksum']
+            file_size = payload['file_size']
+            if checksum != wanted_checksum or file_size == 0:
+                return None
+            else:
+                return peer_uploader_address, file_size
+        except:
+            import traceback
+            traceback.print_exc()
 
     def download_file(self, peer_address, checksum, file_size):
         try:
