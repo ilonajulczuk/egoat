@@ -11,6 +11,7 @@ import (
 )
 
 var CHUNKSIZE int = 512
+var INSIDE_URL = "0.0.0.0"
 
 // Structs useful for communication
 type RequesterMessage struct {
@@ -59,7 +60,7 @@ func Check(err error) {
 }
 
 // Function used to P2P file sharing
-func AcceptDownloadRequest(checksums_filenames map[string]string, waitingAddress string, forUpload chan []string, bindingAddress string) {
+func AcceptDownloadRequest(checksums_filenames map[string]string, waitingAddress string, bindingPort string, outsideUrl string) []string {
 	buf := make([]byte, CHUNKSIZE)
 
 	addr, err := net.ResolveUDPAddr("udp", waitingAddress)
@@ -69,42 +70,47 @@ func AcceptDownloadRequest(checksums_filenames map[string]string, waitingAddress
 	}
 	sock, err := net.ListenUDP("udp", addr)
 
+	defer sock.Close()
 	Check(err)
-	for {
-		sock.ReadFromUDP(buf)
-		first0 := First0(buf)
-		res := &RequesterMessage{}
-		err = json.Unmarshal([]byte(string(buf[:first0])), &res)
+	sock.ReadFromUDP(buf)
+	first0 := First0(buf)
+	res := &RequesterMessage{}
+	err = json.Unmarshal([]byte(string(buf[:first0])), &res)
+	Check(err)
+	filename, ok := checksums_filenames[res.Checksum]
+	if ok {
+		fileSize, err := FileSize(filename)
 		Check(err)
-		filename, ok := checksums_filenames[res.Checksum]
-		if ok {
-			fileSize, err := FileSize(filename)
-			Check(err)
-			acceptMessage := &AcceptMessage{res.Checksum, bindingAddress, fileSize}
 
-			replyConn, err := net.Dial("udp", res.WaitingAddress)
-			messageInJSON, _ := json.Marshal(acceptMessage)
-			Check(err)
-			replyConn.Write(messageInJSON)
-			message := []string{bindingAddress, res.Checksum}
-			forUpload <- message
-		} else {
-			panic(ok)
-		}
+		bindingOutsideAddress := outsideUrl + ":" + bindingPort
+		acceptMessage := &AcceptMessage{res.Checksum, bindingOutsideAddress, fileSize}
+		replyConn, err := net.Dial("udp", res.WaitingAddress)
+		messageInJSON, _ := json.Marshal(acceptMessage)
+		Check(err)
+		replyConn.Write(messageInJSON)
+		bindingAddress := INSIDE_URL + ":" + bindingPort
+		message := []string{bindingAddress, res.Checksum}
+
+		return message
+	} else {
+		panic(ok)
 	}
 }
 
-func RequestFile(checksum string, uploaderAddress string, waitingAddress string) (response *AcceptMessage) {
+func RequestFile(checksum string, uploaderAddress string, waitingPort string, outsideUrl string) (response *AcceptMessage) {
 	conn, err := net.Dial("udp", uploaderAddress)
 	Check(err)
+
+	waitingOutsideAddress := outsideUrl + ":" + waitingPort
 	message := &RequesterMessage{
 		Checksum:       checksum,
-		WaitingAddress: waitingAddress}
+		WaitingAddress: waitingOutsideAddress}
 
 	messageInJSON, _ := json.Marshal(message)
 	conn.Write(messageInJSON)
 
 	buf := make([]byte, CHUNKSIZE)
+	waitingAddress := INSIDE_URL + ":" + waitingPort
 	addr, err := net.ResolveUDPAddr("udp", waitingAddress)
 	if err != nil {
 		panic(err)

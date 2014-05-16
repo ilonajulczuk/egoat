@@ -32,19 +32,22 @@ func (s *TestProtocol) TestStreamingFile(c *C) {
 
 func (s *TestProtocol) TestRequestingFile(c *C) {
 	forUpload := make(chan []string)
-	waitingAddress := "127.0.0.1:4444"
-	requesterAddress := "127.0.0.1:5444"
-	bindingAddress := "127.0.0.1:5678"
+	waitingAddress := "0.0.0.0:4444"
+	outsideUrl := "127.0.0.1"
+	requesterPort := "5444"
+	bindingPort := "5678"
 
 	checksums_filenames := map[string]string{"test": "test.txt", "test2": "test.txt"}
 	checksum := "test"
 
-	go AcceptDownloadRequest(checksums_filenames, waitingAddress, forUpload, bindingAddress)
-
+	go func() {
+		message := AcceptDownloadRequest(checksums_filenames, waitingAddress, bindingPort, outsideUrl)
+		forUpload <- message
+	}()
 	time.Sleep(30 * time.Millisecond)
-	response := RequestFile(checksum, waitingAddress, requesterAddress)
+	response := RequestFile(checksum, waitingAddress, requesterPort, outsideUrl)
 
 	<-forUpload
 	c.Assert(response.Checksum, Equals, checksum)
-	c.Assert(response.StreamingAddress, Equals, bindingAddress)
+	c.Assert(response.StreamingAddress, Equals, outsideUrl+":"+bindingPort)
 }

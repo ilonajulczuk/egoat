@@ -26,7 +26,7 @@ func Discover(directory string) (checksums_filenames map[string]string) {
 	return
 }
 
-func Announce(checksums_filenames map[string]string, announceUrl string, port string) {
+func Announce(checksums_filenames map[string]string, announceUrl string, port string) string {
 	marshalled, err := json.Marshal(checksums_filenames)
 	protocol.Check(err)
 	checksum_files_json := string(marshalled)
@@ -34,9 +34,12 @@ func Announce(checksums_filenames map[string]string, announceUrl string, port st
 	values := url.Values{"port": {port}, "checksum_files": {checksum_files_json}}
 	protocol.Check(err)
 	resp, err := http.PostForm(announceUrl, values)
-	protocol.Check(err)
-
 	defer resp.Body.Close()
+
+	protocol.Check(err)
+	data, err := ioutil.ReadAll(resp.Body)
+	protocol.Check(err)
+	return string(data)
 }
 
 func ChoosePeer(serverUrl string, checksum string) string {
@@ -59,10 +62,8 @@ type AnnounceMessage struct {
 func main() {
 
 	// Hardcoded values
-	baseUrl := "127.0.0.1:"
 	downloadsDirectory := "Downloads"
-	bindingAddress := "127.0.0.1:5678"
-
+	bindingPort := "5678"
 	// Command line arguments
 	serverUrl := flag.String("server_url", "http://127.0.0.1:5000/", "Url of tracker server")
 
@@ -74,11 +75,12 @@ func main() {
 	flag.Parse()
 
 	// Prepare parameters using command line arguments
-	downloaderAddress := baseUrl + strconv.Itoa(*downloaderPort)
+	downloaderPortString := strconv.Itoa(*downloaderPort)
 	uploaderPortString := strconv.Itoa(*uploaderPort)
-	uploaderAddress := baseUrl + uploaderPortString
+	uploaderAddress := protocol.INSIDE_URL + ":" + uploaderPortString
 	checksums_filenames := Discover(*directory)
 
+	outsideUrl := Announce(checksums_filenames, *serverUrl+"hello/", uploaderPortString)
 	done := make(chan bool)
 	ticker := time.NewTicker(time.Millisecond * 5000)
 	go func() {
@@ -96,12 +98,17 @@ func main() {
 	// Feed our checksum wishlist
 	toRequest <- *wantedChecksum
 
-	go protocol.AcceptDownloadRequest(checksums_filenames, uploaderAddress, forUpload, bindingAddress)
+	go func() {
+		for true {
+			message := protocol.AcceptDownloadRequest(checksums_filenames, uploaderAddress, bindingPort, outsideUrl)
+			forUpload <- message
+		}
+	}()
 
 	go func() {
 		for checksum := range toRequest {
 			newPeer := ChoosePeer(*serverUrl, checksum)
-			response := protocol.RequestFile(checksum, newPeer, downloaderAddress)
+			response := protocol.RequestFile(checksum, newPeer, downloaderPortString, outsideUrl)
 			toDownload <- response
 		}
 	}()
