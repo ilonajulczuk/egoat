@@ -11,10 +11,10 @@ REDIS_LIST = 'egoat::sharers::'
 TIMEOUT = 30
 
 def get_ip(request):
-    try:
-        ip = request._get_current_objectheaders.appendget('X-Real-IP')
-    except:
-        ip = request.remote_addr
+    if not request.headers.getlist("X-Forwarded-For"):
+       ip = request.remote_addr
+    else:
+       ip = request.headers.getlist("X-Forwarded-For")[0]
     return ip
 
 def load_data():
