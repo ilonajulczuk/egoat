@@ -64,10 +64,12 @@ class Uploader(object):
             deal_address = loaded_json['waiting_address']
             checksum = loaded_json['checksum']
             filename = checksum_files[checksum]
+	
+        binding_port = 7381
 
-        binding_port = 7381 + random.randint(0, 30)
         # notice difference between outside and inside addresses
         outside_binding_address = (self.outside_ip, binding_port)
+	
         inside_binding_address = (self.inside_ip, binding_port)
         ack_message = {
             "streaming_address": ":".join([str(el) for el in outside_binding_address]),

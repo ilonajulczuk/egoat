@@ -74,8 +74,10 @@ class Client(object):
         task_queue_download = Queue()
         done_queue_upload = Queue()
         done_queue_download = Queue()
-
-        upload_helper = Uploader(port=self.uploader_port)
+        self.announce()
+        upload_helper = Uploader(inside_ip=self.inside_ip,
+								 outside_ip=self.outside_ip,
+								 port=self.uploader_port)
 
         Process(
             target=dealer_upload,
@@ -87,7 +89,10 @@ class Client(object):
 
 
         downloader_address = (self.inside_ip, self.downloader_port)
-        download_helper = Downloader(self.server_url, self.downloader_port)
+        download_helper = Downloader(self.server_url,
+									 self.downloader_port,
+									 inside_ip=self.inside_ip,
+									 outside_ip=self.outside_ip)
 
         Process(
             target=dealer_download,
@@ -117,7 +122,6 @@ class Client(object):
                     done_queue_download,
                     self.downloads_directory)).start()
 
-        Timer(2, self.announce).start()
         while True:
             if not done_queue_download.empty():
                 download_result = done_queue_download.get()
