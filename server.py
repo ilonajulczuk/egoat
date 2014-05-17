@@ -14,7 +14,7 @@ def get_ip(request):
     if not request.headers.getlist("X-Forwarded-For"):
        ip = request.remote_addr
     else:
-       ip = request.headers.getlist("X-Forwarded-For")[0]
+       ip = request.headers.getlist("X-Real-IP")[0]
     return ip
 
 def load_data():
@@ -64,12 +64,12 @@ def announce_files():
     try:
         checksum_json = request.args['checksum_files']
 
-        address = request.args['port']
+        port = request.args['port']
     except:
 
         checksum_json = request.form['checksum_files']
-        address = request.form['port']
-    address = request.remote_addr + ":" + address
+        port = request.form['port']
+    address = get_ip(request) + ":" + port
     checksum_files = json.loads(checksum_json)
     add_announcement(address, checksum_files)
 
