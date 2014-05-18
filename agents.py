@@ -28,6 +28,8 @@ def dealer_download(
                 dealer_uploader_address)
             if download_address is None:
                 wanted_checksums.put(wanted_checksum)
+                time.sleep(1)
+                continue
 
             response = downloader.request_download(
                 download_address,

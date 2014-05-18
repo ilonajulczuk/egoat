@@ -1,26 +1,27 @@
-import requests
-from multiprocessing import Process, Queue
-import os
-from threading import Timer
 import argparse
-from protocol import compute_checksum
-import time
 import json
 import logging
-from protocol import Downloader, Uploader
+import os
+import requests
+import time
+
+from multiprocessing import Process, Queue
+from threading import Timer
+
 from agents import (
     dealer_upload,
     dealer_download,
     uploader,
     downloader
 )
+from protocol import compute_checksum
+from protocol import Downloader, Uploader
 
 
 logger = logging
 
 
 class Client(object):
-
     def __init__(self, directory, server_url, uploader_port, downloader_port,
                  downloads_directory):
         self.directory = directory
@@ -29,7 +30,6 @@ class Client(object):
 
         self.inside_ip = "0.0.0.0"
         self.outside_ip = "127.0.0.1"
-
 
         self.downloader_port = downloader_port
         self.uploader_port = uploader_port
@@ -57,12 +57,10 @@ class Client(object):
 
     def announce(self):
         response = requests.post(self.server_url + 'hello/',
-                      params={'checksum_files': json.dumps(self.check_sums),
-                              'port': self.uploader_port})
+                                 params={'checksum_files': json.dumps(self.check_sums),
+                                         'port': self.uploader_port})
         self.outside_ip = response.text
         Timer(20, self.announce).start()
-
-        #self.out_address = response.text
 
     def serve(self, wanted_checksums):
         NUMBER_OF_UPLOADING_PROCESSES = 4
@@ -76,8 +74,8 @@ class Client(object):
         done_queue_download = Queue()
         self.announce()
         upload_helper = Uploader(inside_ip=self.inside_ip,
-								 outside_ip=self.outside_ip,
-								 port=self.uploader_port)
+                                 outside_ip=self.outside_ip,
+                                 port=self.uploader_port)
 
         Process(
             target=dealer_upload,
@@ -87,12 +85,11 @@ class Client(object):
                 self.check_sums,
                 task_queue_upload)).start()
 
-
         downloader_address = (self.inside_ip, self.downloader_port)
         download_helper = Downloader(self.server_url,
-									 self.downloader_port,
-									 inside_ip=self.inside_ip,
-									 outside_ip=self.outside_ip)
+                                     self.downloader_port,
+                                     inside_ip=self.inside_ip,
+                                     outside_ip=self.outside_ip)
 
         Process(
             target=dealer_download,
