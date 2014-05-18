@@ -21,6 +21,10 @@ from protocol import Downloader, Uploader
 logger = logging
 
 
+NUMBER_OF_UPLOADING_PROCESSES = 4
+NUMBER_OF_DOWNLOADING_PROCESSES = 4
+
+
 class Client(object):
     def __init__(self, directory, server_url, uploader_port, downloader_port,
                  downloads_directory):
@@ -63,8 +67,6 @@ class Client(object):
         Timer(20, self.announce).start()
 
     def serve(self, wanted_checksums):
-        NUMBER_OF_UPLOADING_PROCESSES = 4
-        NUMBER_OF_DOWNLOADING_PROCESSES = 4
 
         # Create queues
         wanted_checksums_queue = Queue()
@@ -151,7 +153,7 @@ def main():
         default=None,
         help="List with stored checksums of files you want to download")
     parser.add_argument("-p", "--port", type=str, default=None,
-                        help="Port to wait for comming requests")
+                        help="Port to wait for coming requests")
     parser.add_argument(
         "-d",
         "--downloads_directory",
