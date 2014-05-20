@@ -1,10 +1,13 @@
-import requests
-import os
-import json
-import time
-import logging
-import random
 from hashlib import sha512
+import json
+import logging
+import os
+import random
+import requests
+import socket
+import time
+
+
 from socket_helpers import (
     sock_send,
     create_socket,
@@ -12,9 +15,6 @@ from socket_helpers import (
     sock_connect,
     convert_address,
 )
-
-import socket
-
 
 CHUNKSIZE = 512
 
@@ -28,14 +28,15 @@ class Uploader(object):
         self.outside_ip = outside_ip
         self.inside_ip = inside_ip
 
-    def stream_file(self, binding_address, filename):
+    @staticmethod
+    def stream_file(binding_address, filename):
         sock = create_socket(socktype="tcp")
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind(convert_address(binding_address))
         logger.info("starting listening!")
         sock.listen(5)
         try:
-            comm_sock, addr = sock.accept()
+            comm_sock, _ = sock.accept()
             sent = 0
             file_size = os.path.getsize(filename)
             with open(filename, 'r') as source_file:
@@ -53,7 +54,7 @@ class Uploader(object):
     def accept_download_request(self, checksum_files):
         address = (self.inside_ip, self.port)
         sock = sock_bind(address)
-        message, addr = sock.recvfrom(1024)
+        message, _ = sock.recvfrom(1024)
 
         sock.close()
         loaded_json = json.loads(message)
@@ -88,7 +89,8 @@ class Downloader(object):
             downloader_port=None,
             outside_ip='127.0.0.1',
             inside_ip='0.0.0.0',
-            downloads_directory='Downloads',):
+            downloads_directory='Downloads'):
+
         self.server_url = server_url
         self.outside_ip = outside_ip
         self.inside_ip = inside_ip
@@ -101,11 +103,9 @@ class Downloader(object):
         addresses = json.loads(response.text)['addresses']
         return addresses
 
-    def choose_peer(self, wanted_checksum, downloader_address):
+    def choose_peer(self, wanted_checksum):
         """Choose address of client which has wanted checksum"""
         all_addresses = self.get_uploader_addresses(wanted_checksum)
-        if downloader_address in all_addresses:
-            all_addresses.remove(downloader_address)
 
         if all_addresses:
             download_address = random.choice(all_addresses)
@@ -121,19 +121,19 @@ class Downloader(object):
             # outside address
             message = {
                 "waiting_address": ":".join((self.outside_ip,
-                  str(self.downloader_port))),
+                str(self.downloader_port))),
                 "checksum": wanted_checksum}
 
             downloader_address = ":".join((self.inside_ip,
-                  str(self.downloader_port)))
+                                          str(self.downloader_port)))
 
             checksum_request = json.dumps(message)
             sock = sock_bind(downloader_address)
             sock_send(checksum_request, download_address)
 
-            json_data, addr = sock.recvfrom(1024)  # buffer size is 1024 bytes
+            json_data, _ = sock.recvfrom(1024)
             sock.close()
-            payload =  json.loads(json_data)
+            payload = json.loads(json_data)
             peer_uploader_address = payload['streaming_address']
             checksum = payload['checksum']
             file_size = payload['file_size']
@@ -156,7 +156,7 @@ class Downloader(object):
                 os.makedirs(self.downloads_directory)
             output_filename = os.path.join(self.downloads_directory, checksum)
             with open(output_filename, 'w') as target_file:
-                while (downloaded) < file_size:
+                while downloaded < file_size:
                     chunk = sock.recv(CHUNKSIZE)
                     downloaded_file += chunk
                     downloaded += len(chunk)
