@@ -1,4 +1,3 @@
-import argparse
 import json
 import logging
 import os
@@ -9,8 +8,8 @@ from multiprocessing import Process, Queue
 from threading import Timer
 
 from agents import (
-    dealer_upload,
-    dealer_download,
+    accept_upload_requests,
+    request_uploads,
     uploader,
     downloader
 )
@@ -46,9 +45,10 @@ class Client(object):
                 for filename in (os.listdir(self.directory))
                 if os.path.isfile(os.path.join(self.directory, filename))]
 
-    def compute_checksums(self, filenames):
+    @staticmethod
+    def compute_checksums(file_names):
         checksums = {}
-        for filename in filenames:
+        for filename in file_names:
             with open(filename, 'r') as file_to_check:
                 file_content = file_to_check.read()
                 checksums[compute_checksum(file_content)] = filename
@@ -80,25 +80,21 @@ class Client(object):
                                  port=self.uploader_port)
 
         Process(
-            target=dealer_upload,
+            target=accept_upload_requests,
             args=(
                 upload_helper,
-                self.address,
                 self.check_sums,
                 task_queue_upload)).start()
 
-        downloader_address = (self.inside_ip, self.downloader_port)
         download_helper = Downloader(self.server_url,
                                      self.downloader_port,
                                      inside_ip=self.inside_ip,
                                      outside_ip=self.outside_ip)
 
         Process(
-            target=dealer_download,
+            target=request_uploads,
             args=(
                 download_helper,
-                self.address,
-                downloader_address,
                 wanted_checksums_queue,
                 task_queue_download)).start()
 
@@ -134,53 +130,3 @@ class Client(object):
             if not done_queue_upload.empty():
                 print('Uploaded:\t%s %s %s' % done_queue_upload.get())
             time.sleep(0.05)
-
-
-def main():
-    parser = argparse.ArgumentParser(description="P2P file sharing client.")
-    parser.add_argument("-q", "--quiet", action="store_true")
-
-    parser.add_argument("directory", type=str, help="Directory to serve.")
-    parser.add_argument("address", type=str, help="Addres to serve on.")
-    parser.add_argument("-s", "--server_url", type=str, default="atte.ro",
-                        help="Server to announce files.")
-    parser.add_argument("-c", "--checksum", type=str, default=None,
-                        help="Checksum of file you want to download")
-    parser.add_argument(
-        "-f",
-        "--checksum_file",
-        type=str,
-        default=None,
-        help="List with stored checksums of files you want to download")
-    parser.add_argument("-p", "--port", type=str, default=None,
-                        help="Port to wait for coming requests")
-    parser.add_argument(
-        "-d",
-        "--downloads_directory",
-        type=str,
-        default='Downloads',
-        help="Directory to store downloads")
-    args = parser.parse_args()
-
-    port = args.port
-    client = Client(args.directory, args.server_url, args.address,
-                    port, args.downloads_directory)
-
-    wanted_checksums = []
-    if args.checksum:
-        wanted_checksums.append(args.checksum)
-    elif args.checksum_file:
-        with open(args.checksum_file) as file_with_list_of_downloads:
-            for line in file_with_list_of_downloads.readlines():
-                wanted_checksums.append(line.strip())
-
-    if args.quiet:
-        pass
-    else:
-        logging.basicConfig(filename='egoat.log', level=logging.INFO)
-    client.announce()
-    client.serve(wanted_checksums)
-
-
-if __name__ == '__main__':
-    main()
