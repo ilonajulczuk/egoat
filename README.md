@@ -38,20 +38,20 @@ Project includes:
 
 2. Create env
 
-`virtualenv env`
+`$ virtualenv env`
 
 3. Activate env
 
-`source env/bin/activate`
+`$ source env/bin/activate`
 
 4. With pip installed and virtual environment activated you can install requirements
 
-`pip install -r requirements.txt`
+`$ pip install -r requirements.txt`
 
 5. To run egoat server you need redis key-value store.
 
-- `apt-get install redis-server`
-- `redis-server &`
+- `$ apt-get install redis-server`
+- `$ redis-server &`
 
 ##Running
 
@@ -69,6 +69,56 @@ Example output:
 
 ```
 Downloaded: 1d47390dd45c675f723e39cd1fd215ed883f6df17a1019ce6d7585db6c618f81bc9c779ec8f3b1eec09e2c4e02edc2fc9332734ae1e8b009ba5798da2a8a112b 127.0.0.1:7381 True
+```
+
+##Golang client installation
+
+1. Install golang
+
+```
+$ apt-get install golang
+```
+
+2. Export $GOPATH
+
+```
+$ export GOPATH=/home/yourname/Projects/egoat/goegoat/
+```
+
+3. Install dependencies (now it's only one)
+
+```
+$ go get "gopkg.in/check.v1"
+```
+
+4. Install, build and test
+
+```
+$ cd /home/yourname/egoat/goegoat/src/github.com/atteroTheGreatest/egoat
+$ go install
+$ go build
+$ go test
+$ mkdir Downloads
+
+$ cd ../protocol
+$ go install
+$ go build
+$ mkdir Downloads
+$ go test
+```
+
+If you don't see any worring messages, this should be all!
+
+##Runing go client
+
+```
+$ ./egoat -checksum long_checksum
+```
+
+To get more help:
+
+```
+$ ./egoat --help
 ```
 
 
